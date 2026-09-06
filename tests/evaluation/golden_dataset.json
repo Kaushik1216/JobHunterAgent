@@ -1,0 +1,122 @@
+[
+  {
+    "raw_snippet": "We are looking for a Software Engineer with at least 3 years of experience in Python and AWS.",
+    "target_yoe": 3,
+    "target_skills": ["Python", "AWS", "Docker"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 3,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Entry level position. 0-1 years of experience in Java.",
+    "target_yoe": 3,
+    "target_skills": ["Java", "Spring"],
+    "ground_truth_yoe_match": false,
+    "ground_truth_min_yoe": 0,
+    "ground_truth_fit_category": "low"
+  },
+  {
+    "raw_snippet": "Senior Developer. Must have 5+ years building scalable systems in Go or Rust.",
+    "target_yoe": 5,
+    "target_skills": ["Go", "Rust", "Kubernetes"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 5,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Looking for a fullstack wizard! React, Node, and MongoDB experience required. At least 2 years of industry experience.",
+    "target_yoe": 3,
+    "target_skills": ["React", "Node", "MongoDB"],
+    "ground_truth_yoe_match": false,
+    "ground_truth_min_yoe": 2,
+    "ground_truth_fit_category": "medium"
+  },
+  {
+    "raw_snippet": "Seeking a Machine Learning expert. Required: PhD and 4 years of PyTorch experience.",
+    "target_yoe": 4,
+    "target_skills": ["PyTorch", "Python", "ML"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 4,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Join our fast-paced startup. We need someone with 1 to 3 years of frontend work, preferably React.",
+    "target_yoe": 2,
+    "target_skills": ["React", "CSS", "HTML"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 1,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Requires minimum 7 years of enterprise C# / .NET development.",
+    "target_yoe": 3,
+    "target_skills": ["C#", ".NET", "SQL"],
+    "ground_truth_yoe_match": false,
+    "ground_truth_min_yoe": 7,
+    "ground_truth_fit_category": "low"
+  },
+  {
+    "raw_snippet": "You will be working with Kubernetes, Docker, and Terraform. 2+ years of DevOps experience.",
+    "target_yoe": 3,
+    "target_skills": ["Kubernetes", "Docker", "Terraform", "AWS"],
+    "ground_truth_yoe_match": false,
+    "ground_truth_min_yoe": 2,
+    "ground_truth_fit_category": "medium"
+  },
+  {
+    "raw_snippet": "Looking for a Data Scientist. 3+ years experience with Pandas, scikit-learn.",
+    "target_yoe": 3,
+    "target_skills": ["Pandas", "scikit-learn", "Python"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 3,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "No prior experience required! We will train you on Ruby on Rails.",
+    "target_yoe": 1,
+    "target_skills": ["Ruby", "Rails"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 0,
+    "ground_truth_fit_category": "low"
+  },
+  {
+    "raw_snippet": "Must have 10 years of experience managing engineering teams.",
+    "target_yoe": 10,
+    "target_skills": ["Management", "Agile"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 10,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Junior position. Requires 1-2 years experience in Python.",
+    "target_yoe": 5,
+    "target_skills": ["Python", "Django"],
+    "ground_truth_yoe_match": false,
+    "ground_truth_min_yoe": 1,
+    "ground_truth_fit_category": "low"
+  },
+  {
+    "raw_snippet": "Seeking Principal Engineer. 12+ years of software design.",
+    "target_yoe": 10,
+    "target_skills": ["Architecture", "System Design"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 12,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Looking for Android Developer with 4 years Kotlin experience.",
+    "target_yoe": 4,
+    "target_skills": ["Kotlin", "Android", "Java"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 4,
+    "ground_truth_fit_category": "high"
+  },
+  {
+    "raw_snippet": "Need an iOS developer. Swift experience. 2-5 years.",
+    "target_yoe": 3,
+    "target_skills": ["Swift", "iOS", "Objective-C"],
+    "ground_truth_yoe_match": true,
+    "ground_truth_min_yoe": 2,
+    "ground_truth_fit_category": "high"
+  }
+]

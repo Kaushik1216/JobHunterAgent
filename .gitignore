@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv
+.env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+
+# Project specifics
+jobs_vault.db
+jobs_output.md
+job_description.txt
+scratch_test_model.py
+run_test.py
+plan.md
+
+# Documentation
+docs/

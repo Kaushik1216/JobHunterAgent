@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/job_agent"]
+
+[project]
+name = "linkedin-job-agent"
+version = "1.0.0"
+description = "LinkedIn Job Agent"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=0.1.0",
+    "duckduckgo-search>=6.0.0",
+    "ddgs>=9.0.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.0.0",
+    "httpx>=0.27.0",
+    "typer>=0.12.0",
+    "structlog>=24.0.0",
+    "streamlit>=1.36.0",
+    "tabulate>=0.9.0",
+    "pyyaml>=6.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "pre-commit>=3.7.0"
+]
+
+[project.scripts]
+job-agent = "job_agent.cli:app"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "YTT", "ANN", "S", "B", "A", "COM", "C4", "ISC", "ICN", "T20", "PT", "RET", "SLF", "SIM", "TID", "TCH", "ARG", "ERA", "PL", "TRY", "FLY", "PERF", "RUF"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
