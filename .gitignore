@@ -47,6 +47,10 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
 .project
 .settings/
 
@@ -81,3 +85,11 @@ plan.md
 
 # Documentation drafts (keep README in repo)
 docs/
+
+# Frontend build output in backend
+src/job_agent/dashboard/web/
+
+# Scratch and patch scripts
+patch_*.py
+test_ddg.py
+

@@ -22,7 +22,8 @@ run:
 	job-agent
 
 dashboard:
-	streamlit run src/job_agent/dashboard/app.py
+	cd frontend && npm install && npm run build
+	job-agent dashboard
 
 docker-up:
 	docker-compose up -d

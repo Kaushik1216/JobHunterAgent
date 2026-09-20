@@ -1,6 +1,6 @@
 import time
 import structlog
-from job_agent.models.enums import PipelineStage, JobStatus
+from job_agent.models.enums import JobStatus, PipelineStage, RunMode
 from job_agent.models.schemas import SearchTarget, RawJobResult, EvaluatedJob
 from job_agent.observability.metrics import MetricsCollector
 from job_agent.inference.prompts import build_extraction_prompt, EXTRACTION_SYSTEM_PROMPT, get_extraction_schema
@@ -20,37 +20,84 @@ class Pipeline:
         self.metrics = metrics
         self.settings = settings
     
-    def process_target(self, target: SearchTarget) -> list[EvaluatedJob]:
-        """Run the full pipeline for a single search target."""
-        logger.info("processing_target", target=target.model_dump())
-        qualified_jobs = []
-        
-        # SEARCH
+    def process_target(self, target: SearchTarget, mode: RunMode = RunMode.SEARCH_AND_MATCH) -> list[EvaluatedJob]:
+        """Search and optionally evaluate a single target."""
+        logger.info("processing_target", target=target.model_dump(), mode=mode.value)
+        if mode == RunMode.MATCH:
+            return self.match_unevaluated()
+
+        discovered = self.discover_target(target)
+        if mode == RunMode.SEARCH:
+            return []
+        return self._match_jobs(discovered)
+    
+    def discover_target(self, target: SearchTarget) -> list[EvaluatedJob]:
         raw_results = self._search(target)
         if not raw_results:
-            return qualified_jobs
-            
-        # DEDUP
+            return []
         new_results = self._dedup(raw_results)
-        
-        # EVALUATE
+        discovered: list[EvaluatedJob] = []
         for result in new_results:
+            job = EvaluatedJob.from_discovery(result, target)
+            self.repository.save_job(job)
+            discovered.append(job)
+        return discovered
+
+    def match_unevaluated(self) -> list[EvaluatedJob]:
+        pending = self.repository.get_unevaluated_jobs()
+        logger.info("matching_unevaluated", count=len(pending))
+        return self._match_jobs(pending)
+
+    def _match_jobs(self, jobs: list[EvaluatedJob]) -> list[EvaluatedJob]:
+        qualified_jobs: list[EvaluatedJob] = []
+        for job in jobs:
             try:
-                evaluated_job = self._evaluate(result, target)
-                if evaluated_job:
-                    # FILTER
-                    if self._filter(evaluated_job):
-                        # PERSIST
-                        self._persist(evaluated_job)
-                        qualified_jobs.append(evaluated_job)
-                        self.metrics.increment_qualified()
-                    else:
-                        self.metrics.increment_skipped_low_score()
+                evaluated = self._match_one(job)
+                if evaluated is None:
+                    self.metrics.increment_errored()
+                    continue
+                if evaluated.status == JobStatus.NEW:
+                    qualified_jobs.append(evaluated)
+                    self.metrics.increment_qualified()
+                else:
+                    self.metrics.increment_skipped_low_score()
             except Exception as e:
-                logger.error("evaluation_failed", result=result.title, error=str(e))
+                logger.error("evaluation_failed", result=job.title, error=str(e))
                 self.metrics.increment_errored()
-                
         return qualified_jobs
+
+    def _match_one(self, job: EvaluatedJob) -> EvaluatedJob | None:
+        target = SearchTarget(
+            company=job.company,
+            title=job.search_title or job.title,
+            location=job.location,
+            target_yoe=job.target_yoe,
+            core_skills=job.core_skills or None,
+        )
+        raw = RawJobResult(
+            title=job.title,
+            url=job.apply_url,
+            snippet=job.raw_snippet,
+            source_query=job.source_query,
+            source_portal=job.source_portal,
+        )
+        evaluated = self._evaluate(raw, target)
+        if evaluated is None:
+            return None
+        passed = self._filter(evaluated)
+        merged = evaluated.model_copy(update={
+            "evaluated": True,
+            "search_title": job.search_title,
+            "target_yoe": job.target_yoe,
+            "core_skills": job.core_skills,
+            "status": JobStatus.NEW if passed else JobStatus.SKIPPED,
+            "apply_url": job.apply_url,
+            "source_query": job.source_query or evaluated.source_query,
+            "source_portal": job.source_portal or evaluated.source_portal,
+            "raw_snippet": job.raw_snippet or evaluated.raw_snippet,
+        })
+        self.repository.update_job(merged)
+        return merged
     
     def _search(self, target: SearchTarget) -> list[RawJobResult]:
         logger.debug("stage_transition", stage=PipelineStage.SEARCH.value)
@@ -89,7 +136,6 @@ class Pipeline:
         schema = get_extraction_schema()
         system_prompt = EXTRACTION_SYSTEM_PROMPT.format(schema=schema)
 
-        # For broad searches (empty company), instruct SLM to extract company from snippet
         company_for_prompt = target.company if target.company else "Extract from snippet"
 
         prompt = build_extraction_prompt(
@@ -118,7 +164,3 @@ class Pipeline:
         if job.fit_score < self.settings.fit_score_threshold:
             return False
         return True
-
-    def _persist(self, job: EvaluatedJob) -> None:
-        logger.debug("stage_transition", stage=PipelineStage.PERSIST.value)
-        self.repository.save_job(job)

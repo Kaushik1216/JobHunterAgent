@@ -128,7 +128,20 @@ class WebSearchJobPortal(JobPortal):
             results: list[RawJobResult] = []
             seen_urls: set[str] = set()
             ddgs = DDGS()
-            ddgs_results = ddgs.text(query, max_results=max_results)
+            
+            timelimit = None
+            if getattr(self.settings, 'search_max_days', None):
+                days = self.settings.search_max_days
+                if days <= 1:
+                    timelimit = "d"
+                elif days <= 7:
+                    timelimit = "w"
+                elif days <= 30:
+                    timelimit = "m"
+                elif days <= 365:
+                    timelimit = "y"
+            
+            ddgs_results = ddgs.text(query, max_results=max_results, timelimit=timelimit)
             for res in ddgs_results:
                 url = res.get("href", "")
                 if not url or url in seen_urls or not self.accepts_url(url):
@@ -171,7 +184,7 @@ class BoardJobPortal(WebSearchJobPortal):
     def build_query(self, company: str, title: str, location: str) -> str:
         parts = [self.site_filter] if self.site_filter else []
         if company and company.strip():
-            parts.append(f'"{company.strip()}"')
+            parts.append(f'intitle:"{company.strip()}"')
         else:
             parts.append("jobs hiring")
         parts.extend(quoted_terms(title, location))
@@ -186,7 +199,9 @@ class AtsJobPortal(WebSearchJobPortal):
 
     def build_query(self, company: str, title: str, location: str) -> str:
         parts = [self.site_filter] if self.site_filter else []
-        parts.extend(quoted_terms(company, title, location))
+        if company and company.strip():
+            parts.append(f'intitle:"{company.strip()}"')
+        parts.extend(quoted_terms(title, location))
         if "jobs" not in " ".join(parts).lower():
             parts.append("jobs")
         return " ".join(parts)

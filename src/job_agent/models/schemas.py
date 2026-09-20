@@ -16,6 +16,7 @@ class SearchTarget(BaseModel):
     title: str
     location: str
     target_yoe: int | None = None
+    posted_days_ago: int | None = None
     core_skills: list[str] | None = None
 
     def merge_with_globals(self, globals_filter: GlobalFilters) -> "SearchTarget":
@@ -81,9 +82,40 @@ class EvaluatedJob(BaseModel):
     source_portal: str = "unknown"
     raw_snippet: str = ""
     status: JobStatus = JobStatus.NEW
+    evaluated: bool = True
+    search_title: str = ""
+    target_yoe: int | None = None
+    posted_days_ago: int | None = None
+    core_skills: list[str] = Field(default_factory=list)
 
     def url_hash(self) -> str:
         return hashlib.sha256(self.apply_url.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def from_discovery(cls, result: RawJobResult, target: SearchTarget) -> "EvaluatedJob":
+        """Placeholder row for a listing that has been searched but not matched yet."""
+        return cls(
+            title=result.title,
+            company=target.company or "Unknown",
+            location=target.location or "Unknown",
+            extracted_min_yoe=None,
+            extracted_max_yoe=None,
+            yoe_match=False,
+            matched_skills=[],
+            missing_skills=[],
+            fit_score=0.0,
+            summary_reason="Not evaluated yet",
+            apply_url=str(result.url),
+            source_query=result.source_query,
+            source_portal=result.source_portal,
+            raw_snippet=result.snippet,
+            status=JobStatus.DISCOVERED,
+            evaluated=False,
+            search_title=target.title,
+            target_yoe=target.target_yoe,
+            core_skills=list(target.core_skills or []),
+            posted_days_ago=None,
+        )
 
 class ExecutionSummary(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -98,6 +130,8 @@ class ExecutionSummary(BaseModel):
     jobs_errored: int = 0
     avg_inference_latency_ms: float = 0.0
     avg_search_latency_ms: float = 0.0
+    mode: str = "search_and_match"
+    jobs_discovered: int = 0
 
     @property
     def duration_seconds(self) -> float:

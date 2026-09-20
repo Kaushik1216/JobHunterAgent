@@ -14,6 +14,7 @@ from job_agent.inference.output_guard import OutputGuard
 from job_agent.export.markdown_exporter import MarkdownExporter
 from job_agent.observability.logging import setup_logging
 from job_agent.observability.metrics import MetricsCollector
+from job_agent.models.enums import RunMode
 from job_agent.models.schemas import ExecutionSummary, EvaluatedJob, SearchTarget
 from job_agent.exceptions import JobAgentError
 
@@ -26,10 +27,29 @@ class AgentRunner:
         self._settings = settings or get_settings()
         self._run_id = str(uuid.uuid4())[:8]
     
-    def run(self) -> ExecutionSummary:
-        """Execute the full job discovery pipeline."""
+    def _resolve_targets(self, targets: list[SearchTarget] | None) -> tuple[list[SearchTarget], str]:
+        if targets is not None:
+            return targets, f"dashboard ({len(targets)} targets)"
+        if self._settings.jd_path.exists():
+            jd = parse_jd(self._settings.jd_path)
+            resolved = jd_to_search_targets(jd)
+            source = f"job_description.txt ({jd.role} @ {jd.location})"
+            logger.info("using_jd_file", path=str(self._settings.jd_path), role=jd.role, location=jd.location)
+            return resolved, source
+        criteria = parse_criteria(self._settings.criteria_path)
+        resolved = criteria.resolve_targets()
+        source = f"criteria.yaml ({len(resolved)} targets)"
+        logger.info("using_criteria_yaml", path=str(self._settings.criteria_path), target_count=len(resolved))
+        return resolved, source
+
+    def run(
+        self,
+        mode: RunMode = RunMode.SEARCH_AND_MATCH,
+        targets: list[SearchTarget] | None = None,
+    ) -> ExecutionSummary:
+        """Execute search, match, or the full discovery pipeline."""
         setup_logging(self._settings)
-        logger.info("starting_run", run_id=self._run_id)
+        logger.info("starting_run", run_id=self._run_id, mode=mode.value)
         
         db = DatabaseManager(self._settings.db_path)
         db.connect()
@@ -41,19 +61,10 @@ class AgentRunner:
         guard = OutputGuard(llm_client)
         exporter = MarkdownExporter(self._settings.output_path)
         metrics = MetricsCollector()
-        
-        # Determine input source: JD file takes priority over criteria.yaml
-        input_source = ""
-        if self._settings.jd_path.exists():
-            jd = parse_jd(self._settings.jd_path)
-            targets = jd_to_search_targets(jd)
-            input_source = f"job_description.txt ({jd.role} @ {jd.location})"
-            logger.info("using_jd_file", path=str(self._settings.jd_path), role=jd.role, location=jd.location)
-        else:
-            criteria = parse_criteria(self._settings.criteria_path)
-            targets = criteria.resolve_targets()
-            input_source = f"criteria.yaml ({len(targets)} targets)"
-            logger.info("using_criteria_yaml", path=str(self._settings.criteria_path), target_count=len(targets))
+
+        resolved_targets: list[SearchTarget] = []
+        if mode != RunMode.MATCH:
+            resolved_targets, _input_source = self._resolve_targets(targets)
         
         pipeline = Pipeline(
             searcher=searcher,
@@ -67,23 +78,33 @@ class AgentRunner:
         
         start_time = datetime.now()
         
-        all_qualified = []
-        for target in targets:
-            qualified = pipeline.process_target(target)
-            all_qualified.extend(qualified)
+        all_qualified: list[EvaluatedJob] = []
+        jobs_discovered = 0
+        if mode == RunMode.MATCH:
+            all_qualified = pipeline.match_unevaluated()
+        else:
+            for target in resolved_targets:
+                if mode == RunMode.SEARCH:
+                    discovered = pipeline.discover_target(target)
+                    jobs_discovered += len(discovered)
+                else:
+                    qualified = pipeline.process_target(target, mode=mode)
+                    all_qualified.extend(qualified)
             
         summary = ExecutionSummary(
             run_id=self._run_id,
             started_at=start_time,
             completed_at=datetime.now(),
-            total_targets=len(targets),
+            total_targets=len(resolved_targets),
             jobs_found=metrics.jobs_found,
             jobs_qualified=metrics.jobs_qualified,
             jobs_skipped_dedup=metrics.jobs_skipped_dedup,
             jobs_skipped_low_score=metrics.jobs_skipped_low_score,
             jobs_errored=metrics.jobs_errored,
             avg_inference_latency_ms=metrics.to_dict()["avg_inference_latency_ms"],
-            avg_search_latency_ms=metrics.to_dict()["avg_search_latency_ms"]
+            avg_search_latency_ms=metrics.to_dict()["avg_search_latency_ms"],
+            mode=mode.value,
+            jobs_discovered=jobs_discovered if mode == RunMode.SEARCH else metrics.jobs_found,
         )
         
         if all_qualified:

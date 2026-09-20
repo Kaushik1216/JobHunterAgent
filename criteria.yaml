@@ -1,34 +1,18 @@
-# Job Discovery Criteria
-# Configured for Software Engineer roles in Bengaluru, India
-
 global:
   target_yoe: 3
   preferred_locations:
-    - Bengaluru
-    - Bangalore
-    - India
+  - Bengaluru
+  - Bangalore
+  - India
   core_skills:
-    - Python
-    - Java
-    - Backend
-    - Distributed Systems
-    - SQL
-    - AWS
-    - Docker
-
+  - Python
+  - Java
+  - Backend
+  - Distributed Systems
+  - SQL
+  - AWS
+  - Docker
 targets:
-  - company: Google
-    title: Software Engineer
-    location: Bengaluru
-  - company: Microsoft
-    title: Software Engineer
-    location: Bengaluru
-  - company: Amazon
-    title: Software Engineer
-    location: Bengaluru
-  - company: Flipkart
-    title: Software Engineer
-    location: Bengaluru
-  - company: Uber
-    title: Software Engineer
-    location: Bengaluru
+- company: Amazon
+  title: Software Engineer
+  location: Bengaluru

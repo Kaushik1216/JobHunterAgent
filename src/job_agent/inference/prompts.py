@@ -15,8 +15,9 @@ RULES:
 4. Match skills case-insensitively. Only count a skill as matched if it appears in the snippet.
 5. fit_score should be between 0.0 and 1.0, calculated as: (matched_skills_count / total_required_skills) * yoe_weight
    - yoe_weight = 1.0 if YOE matches or is unspecified, 0.5 if YOE doesn't match
-6. Respond with ONLY valid JSON matching the schema below. No markdown, no explanation.
-7. DO NOT output any thinking process, reasoning steps, or conversational text. Return only the raw JSON.
+6. Extract `posted_days_ago` if the snippet mentions when it was posted (e.g. "3 days ago" -> 3, "1 week ago" -> 7, "Posted 10:38 AM" -> 0). If not mentioned, set to null.
+7. Respond with ONLY valid JSON matching the schema below. No markdown, no explanation.
+8. DO NOT output any thinking process, reasoning steps, or conversational text. Return only the raw JSON.
 
 OUTPUT JSON SCHEMA:
 {schema}
@@ -44,6 +45,7 @@ Analyze this job posting based on the target profile and output JSON with these 
 - yoe_match (boolean)
 - matched_skills (array of string)
 - missing_skills (array of string)
+- posted_days_ago (integer or null)
 - fit_score (number between 0.0 and 1.0)
 - summary_reason (short string explanation)
 
@@ -57,6 +59,7 @@ EXAMPLE OUTPUT FORMAT:
   "yoe_match": true,
   "matched_skills": ["Python"],
   "missing_skills": ["Docker"],
+  "posted_days_ago": 3,
   "fit_score": 0.8,
   "summary_reason": "Matches candidate profile and target skills."
 }}
@@ -93,6 +96,7 @@ def get_extraction_schema() -> str:
           "type": "array",
           "items": {"type": "string"}
         },
+        "posted_days_ago": {"type": ["integer", "null"]},
         "fit_score": {
           "type": "number",
           "minimum": 0.0,
@@ -113,6 +117,7 @@ def get_extraction_schema() -> str:
         "yoe_match",
         "matched_skills",
         "missing_skills",
+        "posted_days_ago",
         "fit_score",
         "summary_reason"
       ]

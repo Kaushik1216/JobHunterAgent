@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     search_circuit_breaker_cooldown: int = 60
     # Comma-separated portal ids from job_agent.portals.PORTAL_REGISTRY
     search_portals: str = "linkedin,indeed,naukri,greenhouse,lever"
+    search_max_days: int = 7 # Controls DuckDuckGo timelimit (d, w, m, y)
 
     def enabled_portal_ids(self) -> list[str]:
         return [portal_id.strip().lower() for portal_id in self.search_portals.split(",") if portal_id.strip()]
@@ -50,8 +51,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "console"
     
-    # Dashboard
-    dashboard_port: int = 8501
+    # Dashboard (FastAPI + React)
+    dashboard_host: str = "127.0.0.1"
+    dashboard_port: int = 8000
 
 
 # Singleton settings instance

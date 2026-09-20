@@ -1,8 +1,4 @@
 import typer
-import structlog
-import subprocess
-import os
-from pathlib import Path
 from job_agent.core.runner import AgentRunner
 from job_agent.config import get_settings
 
@@ -63,15 +59,18 @@ def stats():
 
 @app.command()
 def dashboard():
-    """Launch the interactive Streamlit dashboard."""
+    """Launch the FastAPI + React dashboard."""
+    import uvicorn
+
     settings = get_settings()
-    app_path = Path(__file__).parent / "dashboard" / "app.py"
-    
-    typer.echo(f"Starting dashboard on port {settings.dashboard_port}...")
-    subprocess.run([
-        "streamlit", "run", str(app_path),
-        "--server.port", str(settings.dashboard_port)
-    ])
+    typer.echo(f"Starting dashboard at http://{settings.dashboard_host}:{settings.dashboard_port}")
+    uvicorn.run(
+        "job_agent.dashboard.api:create_app",
+        factory=True,
+        host=settings.dashboard_host,
+        port=settings.dashboard_port,
+        log_level=settings.log_level.lower(),
+    )
 
 @app.command()
 def serve():

@@ -13,14 +13,25 @@ from job_agent.storage.database import DatabaseManager
 
 logger = structlog.get_logger(__name__)
 
+_ALLOWED_SORT = {
+    "fit_score": "fit_score DESC",
+    "company": "company COLLATE NOCASE ASC",
+    "title": "title COLLATE NOCASE ASC",
+    "status": "status ASC",
+    "created_at": "created_at DESC",
+    "portal": "source_portal ASC",
+}
+
 
 class JobRepository:
     def __init__(self, db_manager: DatabaseManager):
         self.db = db_manager
 
     def _row_to_job(self, row: sqlite3.Row) -> EvaluatedJob:
+        keys = row.keys()
         matched_skills = json.loads(row["matched_skills"])
         missing_skills = json.loads(row["missing_skills"])
+        core_skills_raw = row["core_skills"] if "core_skills" in keys else "[]"
         return EvaluatedJob(
             title=row["title"],
             company=row["company"],
@@ -34,9 +45,39 @@ class JobRepository:
             summary_reason=row["summary_reason"],
             apply_url=row["apply_url"],
             source_query=row["source_query"],
-            source_portal=row["source_portal"] if "source_portal" in row.keys() else "unknown",
+            source_portal=row["source_portal"] if "source_portal" in keys else "unknown",
             raw_snippet=row["raw_snippet"],
             status=JobStatus(row["status"]),
+            evaluated=bool(row["evaluated"]) if "evaluated" in keys else True,
+            search_title=row["search_title"] if "search_title" in keys else "",
+            target_yoe=row["target_yoe"] if "target_yoe" in keys else None,
+            core_skills=json.loads(core_skills_raw) if core_skills_raw else [],
+            posted_days_ago=row["posted_days_ago"] if "posted_days_ago" in keys else None,
+        )
+
+    def _job_params(self, job: EvaluatedJob) -> tuple[Any, ...]:
+        return (
+            job.url_hash(),
+            job.company,
+            job.title,
+            job.location,
+            job.apply_url,
+            job.extracted_min_yoe,
+            job.extracted_max_yoe,
+            job.yoe_match,
+            job.fit_score,
+            json.dumps(job.matched_skills),
+            json.dumps(job.missing_skills),
+            job.summary_reason,
+            job.status.value,
+            job.source_query,
+            job.source_portal,
+            job.raw_snippet,
+            int(job.evaluated),
+            job.search_title,
+            job.target_yoe,
+            json.dumps(job.core_skills),
+            job.posted_days_ago,
         )
 
     def job_exists(self, url_hash: str) -> bool:
@@ -54,38 +95,42 @@ class JobRepository:
                 id, company, title, location, apply_url,
                 extracted_min_yoe, extracted_max_yoe, yoe_match,
                 fit_score, matched_skills, missing_skills,
-                summary_reason, status, source_query, source_portal, raw_snippet
+                summary_reason, status, source_query, source_portal, raw_snippet,
+                evaluated, search_title, target_yoe, core_skills, posted_days_ago
             ) VALUES (
                 ?, ?, ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?,
+                ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?
             )
         """
-        params = (
-            job.url_hash(),
-            job.company,
-            job.title,
-            job.location,
-            job.apply_url,
-            job.extracted_min_yoe,
-            job.extracted_max_yoe,
-            job.yoe_match,
-            job.fit_score,
-            json.dumps(job.matched_skills),
-            json.dumps(job.missing_skills),
-            job.summary_reason,
-            job.status.value,
-            job.source_query,
-            job.source_portal,
-            job.raw_snippet,
-        )
         try:
             with self.db.get_connection():
-                self.db.execute(sql, params)
+                self.db.execute(sql, self._job_params(job))
             logger.debug("job_saved", url_hash=job.url_hash())
         except StorageError as e:
             logger.error("save_job_failed", error=str(e), url_hash=job.url_hash())
+            raise
+
+    def update_job(self, job: EvaluatedJob) -> None:
+        sql = """
+            UPDATE jobs SET
+                company = ?, title = ?, location = ?, apply_url = ?,
+                extracted_min_yoe = ?, extracted_max_yoe = ?, yoe_match = ?,
+                fit_score = ?, matched_skills = ?, missing_skills = ?,
+                summary_reason = ?, status = ?, source_query = ?, source_portal = ?,
+                raw_snippet = ?, evaluated = ?, search_title = ?, target_yoe = ?,
+                core_skills = ?, posted_days_ago = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """
+        params = self._job_params(job)[1:] + (job.url_hash(),)
+        try:
+            with self.db.get_connection():
+                self.db.execute(sql, params)
+            logger.debug("job_updated", url_hash=job.url_hash())
+        except StorageError as e:
+            logger.error("update_job_failed", error=str(e), url_hash=job.url_hash())
             raise
 
     def get_job(self, url_hash: str) -> EvaluatedJob | None:
@@ -109,8 +154,17 @@ class JobRepository:
             logger.error("get_jobs_by_status_failed", error=str(e), status=status)
             raise
 
+    def get_unevaluated_jobs(self) -> list[EvaluatedJob]:
+        sql = "SELECT * FROM jobs WHERE evaluated = 0 ORDER BY created_at ASC"
+        try:
+            cursor = self.db.execute(sql)
+            return [self._row_to_job(row) for row in cursor.fetchall()]
+        except StorageError as e:
+            logger.error("get_unevaluated_jobs_failed", error=str(e))
+            raise
+
     def get_all_qualified(self, min_score: float = 0.0) -> list[EvaluatedJob]:
-        sql = "SELECT * FROM jobs WHERE fit_score >= ? ORDER BY fit_score DESC"
+        sql = "SELECT * FROM jobs WHERE evaluated = 1 AND fit_score >= ? ORDER BY fit_score DESC"
         try:
             cursor = self.db.execute(sql, (min_score,))
             return [self._row_to_job(row) for row in cursor.fetchall()]
@@ -134,6 +188,14 @@ class JobRepository:
             cursor = self.db.execute(sql)
             stats = {row["status"]: row["count"] for row in cursor.fetchall()}
             stats["total"] = sum(stats.values())
+            unevaluated = self.db.execute(
+                "SELECT COUNT(*) as count FROM jobs WHERE evaluated = 0"
+            ).fetchone()
+            stats["unevaluated"] = int(unevaluated["count"]) if unevaluated else 0
+            evaluated = self.db.execute(
+                "SELECT COUNT(*) as count FROM jobs WHERE evaluated = 1"
+            ).fetchone()
+            stats["evaluated"] = int(evaluated["count"]) if evaluated else 0
             return stats
         except StorageError as e:
             logger.error("get_run_stats_failed", error=str(e))
@@ -148,6 +210,85 @@ class JobRepository:
             logger.error("get_all_jobs_failed", error=str(e))
             raise
 
+    def list_jobs(
+        self,
+        *,
+        companies: list[str] | None = None,
+        portals: list[str] | None = None,
+        max_days: int | None = None,
+        locations: list[str] | None = None,
+        min_fit: float | None = None,
+        evaluated: bool | None = None,
+        yoe_match: bool | None = None,
+        query: str | None = None,
+        sort: str = "fit_score",
+    ) -> list[EvaluatedJob]:
+        clauses: list[str] = []
+        params: list[Any] = []
+
+        def add_in(column: str, values: list[str] | None) -> None:
+            if not values:
+                return
+            placeholders = ",".join("?" for _ in values)
+            clauses.append(f"{column} IN ({placeholders})")
+            params.extend(values)
+
+        add_in("company", companies)
+        add_in("source_portal", portals)
+        add_in("location", locations)
+        
+        if max_days is not None:
+            clauses.append("posted_days_ago <= ?")
+            params.append(max_days)
+
+        if evaluated is not None:
+            clauses.append("evaluated = ?")
+            params.append(int(evaluated))
+
+        if yoe_match is not None:
+            clauses.append("yoe_match = ?")
+            params.append(int(yoe_match))
+
+        if min_fit is not None:
+            # Unevaluated rows have a placeholder score of 0; keep them visible.
+            clauses.append("(evaluated = 0 OR fit_score >= ?)")
+            params.append(min_fit)
+
+        if query:
+            clauses.append(
+                "(title LIKE ? OR company LIKE ? OR location LIKE ? OR matched_skills LIKE ?)"
+            )
+            like = f"%{query}%"
+            params.extend([like, like, like, like])
+
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        order = _ALLOWED_SORT.get(sort, _ALLOWED_SORT["fit_score"])
+        sql = f"SELECT * FROM jobs {where} ORDER BY {order}"
+        try:
+            cursor = self.db.execute(sql, tuple(params))
+            return [self._row_to_job(row) for row in cursor.fetchall()]
+        except StorageError as e:
+            logger.error("list_jobs_failed", error=str(e))
+            raise
+
+    def get_filter_options(self) -> dict[str, list[str]]:
+        def distinct(column: str) -> list[str]:
+            cursor = self.db.execute(
+                f"SELECT DISTINCT {column} AS value FROM jobs WHERE {column} IS NOT NULL AND {column} != '' ORDER BY value COLLATE NOCASE"
+            )
+            return [str(row["value"]) for row in cursor.fetchall()]
+
+        try:
+            return {
+                "companies": distinct("company"),
+                "portals": distinct("source_portal"),
+                "locations": distinct("location"),
+                "statuses": [status.value for status in JobStatus],
+            }
+        except StorageError as e:
+            logger.error("get_filter_options_failed", error=str(e))
+            raise
+
     def delete_job(self, url_hash: str) -> bool:
         sql = "DELETE FROM jobs WHERE id = ?"
         try:
@@ -156,4 +297,17 @@ class JobRepository:
                 return cursor.rowcount > 0
         except StorageError as e:
             logger.error("delete_job_failed", error=str(e), url_hash=url_hash)
+            raise
+
+    def purge_jobs(self, days: int) -> int:
+        sql = "DELETE FROM jobs WHERE created_at < datetime('now', ?)"
+        modifier = f"-{days} days"
+        try:
+            with self.db.get_connection():
+                cursor = self.db.execute(sql, (modifier,))
+                deleted = cursor.rowcount
+            logger.info("purged_old_jobs", days=days, deleted_count=deleted)
+            return deleted
+        except StorageError as e:
+            logger.error("purge_jobs_failed", error=str(e), days=days)
             raise
