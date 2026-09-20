@@ -142,6 +142,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if body.ttl_days is not None and body.ttl_days > 0:
             deleted = ctx.repository.purge_jobs(body.ttl_days)
             
+        import job_agent.config as cfg
+        cfg._settings = cfg.Settings()
+        ctx.settings = cfg._settings
+            
         return {"status": "ok", "deleted_jobs": deleted}
 
     @app.get("/api/health")

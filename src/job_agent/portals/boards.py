@@ -9,7 +9,7 @@ class LinkedInPortal(BoardJobPortal):
     portal_id: ClassVar[str] = "linkedin"
     display_name: ClassVar[str] = "LinkedIn"
     kind: ClassVar[PortalKind] = "board"
-    site_filter: ClassVar[str] = "site:linkedin.com/jobs"
+    site_filter: ClassVar[str] = "site:linkedin.com/jobs/view/"
     url_host_suffixes: ClassVar[tuple[str, ...]] = ("linkedin.com",)
 
 

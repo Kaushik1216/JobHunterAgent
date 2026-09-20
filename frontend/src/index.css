@@ -95,7 +95,12 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 .status-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px; font-weight: 500; outline: none; margin-top: 12px; }
 
 /* Run Bar */
-.run-bar { background: #091e42; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.run-bar { background: #091e42; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; flex-wrap: wrap; gap: 8px; }
+.run-bar.failed { background: #1c0a0a; border-bottom: 2px solid #dc2626; }
+.run-bar.completed { background: #0a1c14; border-bottom: 2px solid #22c55e; }
+.run-bar.active { background: #091e42; border-bottom: 2px solid #4c9aff; }
+.run-bar-status { display: flex; align-items: center; gap: 8px; }
+.run-error-block { display: flex; align-items: flex-start; gap: 6px; background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.4); border-radius: 6px; padding: 6px 12px; max-width: 600px; color: #fca5a5; flex-wrap: wrap; }
 .run-stats { display: flex; gap: 24px; }
 .run-stat-item { display: flex; align-items: center; gap: 8px; }
 .run-stat-val { font-size: 18px; font-weight: 700; color: #4c9aff; }

@@ -50,16 +50,18 @@ class RunManager:
 
     def _execute(self, mode: RunMode, targets: list[SearchTarget] | None) -> None:
         try:
-            runner = AgentRunner(self._settings)
+            from job_agent.config import get_settings
+            runner = AgentRunner(get_settings())
             summary = runner.run(mode=mode, targets=targets)
             data = summary.model_dump(mode="json")
             data["duration_seconds"] = summary.duration_seconds
+            has_errors = bool(summary.search_errors)
             with self._lock:
                 self._state = {
-                    "status": "completed",
+                    "status": "failed" if has_errors and summary.jobs_discovered == 0 and summary.jobs_found == 0 else "completed",
                     "mode": mode.value,
-                    "message": "Run finished",
-                    "error": None,
+                    "message": f"{len(summary.search_errors)} search error(s) — check portal connectivity" if has_errors else "Run finished",
+                    "error": "\n".join(summary.search_errors) if has_errors else None,
                     "summary": data,
                     "started_at": self._state.get("started_at"),
                     "completed_at": datetime.now(timezone.utc).isoformat(),

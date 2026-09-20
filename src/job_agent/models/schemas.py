@@ -91,11 +91,42 @@ class EvaluatedJob(BaseModel):
     def url_hash(self) -> str:
         return hashlib.sha256(self.apply_url.encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def _clean_raw_title(raw_title: str, company: str) -> str:
+        """Clean a raw DuckDuckGo/LinkedIn page title into a readable job title.
+
+        Examples:
+          "Amazon hiring Software Development Engineer in Bengaluru | LinkedIn"
+          -> "Software Development Engineer"
+          "Software Development Engineer II, Amazon Pharmacy"
+          -> "Software Development Engineer II, Amazon Pharmacy"
+        """
+        import re
+        title = raw_title.strip()
+
+        # Remove trailing site name: "| LinkedIn", "| Indeed", "— Bengaluru ..."
+        title = re.sub(r'\s*[|—]\s*(LinkedIn|Indeed|Naukri|Glassdoor|Wellfound).*$', '', title, flags=re.IGNORECASE)
+
+        # Remove "CompanyName hiring " prefix (LinkedIn pattern)
+        if company:
+            title = re.sub(rf'^{re.escape(company)}\s+hiring\s+', '', title, flags=re.IGNORECASE)
+
+        # Remove trailing location noise: " in Bengaluru, Karnataka, India"
+        title = re.sub(r'\s+in\s+[A-Z][^,]+(,\s*[A-Z][^,]+)*\s*$', '', title)
+
+        # Remove trailing " at CompanyName" suffix
+        if company:
+            title = re.sub(rf'\s+at\s+{re.escape(company)}.*$', '', title, flags=re.IGNORECASE)
+
+        title = title.strip().strip(',').strip()
+        return title if title else raw_title.strip()
+
     @classmethod
     def from_discovery(cls, result: RawJobResult, target: SearchTarget) -> "EvaluatedJob":
         """Placeholder row for a listing that has been searched but not matched yet."""
+        clean_title = cls._clean_raw_title(result.title, target.company or "")
         return cls(
-            title=result.title,
+            title=clean_title,
             company=target.company or "Unknown",
             location=target.location or "Unknown",
             extracted_min_yoe=None,
@@ -132,6 +163,7 @@ class ExecutionSummary(BaseModel):
     avg_search_latency_ms: float = 0.0
     mode: str = "search_and_match"
     jobs_discovered: int = 0
+    search_errors: list[str] = []
 
     @property
     def duration_seconds(self) -> float:

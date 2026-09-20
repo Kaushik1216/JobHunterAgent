@@ -128,7 +128,7 @@ class WebSearchJobPortal(JobPortal):
             results: list[RawJobResult] = []
             seen_urls: set[str] = set()
             ddgs = DDGS()
-            
+
             timelimit = None
             if getattr(self.settings, 'search_max_days', None):
                 days = self.settings.search_max_days
@@ -140,8 +140,8 @@ class WebSearchJobPortal(JobPortal):
                     timelimit = "m"
                 elif days <= 365:
                     timelimit = "y"
-            
-            ddgs_results = ddgs.text(query, max_results=max_results, timelimit=timelimit)
+
+            ddgs_results = ddgs.text(query, max_results=max_results * 2, timelimit=timelimit) or []
             for res in ddgs_results:
                 url = res.get("href", "")
                 if not url or url in seen_urls or not self.accepts_url(url):
@@ -182,13 +182,113 @@ class BoardJobPortal(WebSearchJobPortal):
     site_filter: ClassVar[str] = ""
 
     def build_query(self, company: str, title: str, location: str) -> str:
-        parts = [self.site_filter] if self.site_filter else []
+        """Build a natural-language query that avoids advanced operator bot-blocking."""
+        parts = []
+        if self.site_filter:
+            parts.append(self.site_filter)
         if company and company.strip():
-            parts.append(f'intitle:"{company.strip()}"')
-        else:
-            parts.append("jobs hiring")
-        parts.extend(quoted_terms(title, location))
+            parts.append(f'"{company.strip()}"')
+        if title and title.strip():
+            parts.append(f'"{title.strip()}"')
+        if location and location.strip():
+            parts.append(f'"{location.strip()}"')
+        parts.append("job opening")
         return " ".join(parts)
+
+    def search(
+        self,
+        company: str,
+        title: str,
+        location: str,
+        max_results: int = 5,
+    ) -> list[RawJobResult]:
+        self._check_circuit_breaker()
+        self._apply_jitter()
+
+        query = self.build_query(company, title, location)
+        logger.info("searching jobs", query=query, max_results=max_results, portal=self.portal_id)
+
+        timelimit = None
+        if getattr(self.settings, "search_max_days", None):
+            days = self.settings.search_max_days
+            if days <= 1:
+                timelimit = "d"
+            elif days <= 7:
+                timelimit = "w"
+            elif days <= 30:
+                timelimit = "m"
+            elif days <= 365:
+                timelimit = "y"
+
+        results = self._run_search(query, max_results, timelimit, company=company)
+
+        # Fallback: if time-restricted search yields nothing, retry without time limit
+        if not results and timelimit is not None:
+            logger.info("no results with timelimit, retrying without", portal=self.portal_id, timelimit=timelimit)
+            time.sleep(random.uniform(1.0, 2.0))
+            results = self._run_search(query, max_results, timelimit=None, company=company)
+
+        logger.info("search completed", results_count=len(results), portal=self.portal_id)
+        return results
+
+    def _run_search(self, query: str, max_results: int, timelimit: str | None, company: str = "") -> list[RawJobResult]:
+        try:
+            results: list[RawJobResult] = []
+            seen_urls: set[str] = set()
+            ddgs = DDGS()
+            ddgs_results = ddgs.text(query, max_results=max_results * 3, timelimit=timelimit) or []
+            
+            # Normalize company name for matching (handle "Amazon Web Services" -> "amazon")
+            company_slug = company.strip().lower() if company else ""
+            # Also check first word of company name (e.g. "Amazon Web Services" -> "amazon")
+            company_first_word = company_slug.split()[0] if company_slug else ""
+            
+            for res in ddgs_results:
+                url = res.get("href", "")
+                title_r = res.get("title", "")
+                body = res.get("body", "")
+                if not url or url in seen_urls:
+                    continue
+                if not self.accepts_url(url):
+                    continue
+                # Filter out obviously non-job pages
+                if any(x in url for x in ["/search?", "wikipedia.org", "reddit.com/r/", "quora.com"]):
+                    continue
+                # Company relevance filter: if a specific company is requested,
+                # only keep results where company name appears in URL or title
+                if company_first_word:
+                    url_lower = url.lower()
+                    title_lower = title_r.lower()
+                    body_lower = body.lower()
+                    if (company_first_word not in url_lower and
+                        company_slug not in title_lower and
+                        company_first_word not in title_lower and
+                        company_slug not in body_lower[:200]):
+                        logger.debug("filtered irrelevant company result", url=url[:80], company=company)
+                        continue
+                seen_urls.add(url)
+                results.append(
+                    RawJobResult(
+                        title=title_r,
+                        url=url,
+                        snippet=body,
+                        source_query=query,
+                        source_portal=self.portal_id,
+                    )
+                )
+                if len(results) >= max_results:
+                    break
+            self._record_success()
+            return results
+        except Exception as e:
+            err_msg = str(e).lower()
+            self._record_failure()
+            if "rate limit" in err_msg or "429" in err_msg or "timeout" in err_msg:
+                backoff = min(64.0, 2 ** self._consecutive_failures)
+                logger.warning("rate limit hit, applying backoff", backoff=backoff, portal=self.portal_id)
+                time.sleep(backoff)
+                raise RateLimitError(f"Rate limited: {e}") from e
+            raise SearchError(f"Search failed: {e}") from e
 
 
 class AtsJobPortal(WebSearchJobPortal):
@@ -198,10 +298,14 @@ class AtsJobPortal(WebSearchJobPortal):
     site_filter: ClassVar[str] = ""
 
     def build_query(self, company: str, title: str, location: str) -> str:
-        parts = [self.site_filter] if self.site_filter else []
+        parts = []
+        if self.site_filter:
+            parts.append(self.site_filter)
         if company and company.strip():
-            parts.append(f'intitle:"{company.strip()}"')
-        parts.extend(quoted_terms(title, location))
-        if "jobs" not in " ".join(parts).lower():
-            parts.append("jobs")
+            parts.append(f'"{company.strip()}"')
+        if title and title.strip():
+            parts.append(f'"{title.strip()}"')
+        if location and location.strip():
+            parts.append(f'"{location.strip()}"')
+        parts.append("careers apply")
         return " ".join(parts)

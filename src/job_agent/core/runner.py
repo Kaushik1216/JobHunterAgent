@@ -80,16 +80,23 @@ class AgentRunner:
         
         all_qualified: list[EvaluatedJob] = []
         jobs_discovered = 0
+        search_errors: list[str] = []
         if mode == RunMode.MATCH:
             all_qualified = pipeline.match_unevaluated()
         else:
             for target in resolved_targets:
-                if mode == RunMode.SEARCH:
-                    discovered = pipeline.discover_target(target)
-                    jobs_discovered += len(discovered)
-                else:
-                    qualified = pipeline.process_target(target, mode=mode)
-                    all_qualified.extend(qualified)
+                try:
+                    if mode == RunMode.SEARCH:
+                        discovered = pipeline.discover_target(target)
+                        jobs_discovered += len(discovered)
+                    else:
+                        qualified = pipeline.process_target(target, mode=mode)
+                        all_qualified.extend(qualified)
+                except Exception as e:
+                    err_msg = f"Search failed for '{target.company} – {target.title}': {e}"
+                    logger.error("target_search_failed", target=target.company, error=str(e))
+                    search_errors.append(err_msg)
+                    metrics.increment_errored()
             
         summary = ExecutionSummary(
             run_id=self._run_id,
@@ -105,6 +112,7 @@ class AgentRunner:
             avg_search_latency_ms=metrics.to_dict()["avg_search_latency_ms"],
             mode=mode.value,
             jobs_discovered=jobs_discovered if mode == RunMode.SEARCH else metrics.jobs_found,
+            search_errors=search_errors,
         )
         
         if all_qualified:

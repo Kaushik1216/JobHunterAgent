@@ -91,5 +91,5 @@ src/job_agent/dashboard/web/
 
 # Scratch and patch scripts
 patch_*.py
-test_ddg.py
+test_*.py
 
