@@ -75,11 +75,11 @@ class MarkdownExporter:
             skills = ", ".join(job.matched_skills[:3]) + ("..." if len(job.matched_skills) > 3 else "")
             apply_link = f"[Apply]({job.apply_url})"
             table_data.append([
-                i, job.company, job.title, job.location, yoe,
+                i, job.company, job.title, job.location, job.source_portal, yoe,
                 f"{job.fit_score:.2f}", skills, job.status.value, apply_link
             ])
             
-        headers = ["#", "Company", "Title", "Location", "YoE", "Fit", "Matched Skills", "Status", "Link"]
+        headers = ["#", "Company", "Title", "Location", "Portal", "YoE", "Fit", "Matched Skills", "Status", "Link"]
         lines.append(tabulate(table_data, headers=headers, tablefmt="github"))
         lines.append("\n## Job Details\n")
         
@@ -90,6 +90,7 @@ class MarkdownExporter:
             lines.append(f"- **Matched Skills:** {', '.join(job.matched_skills) if job.matched_skills else 'None'}")
             lines.append(f"- **Missing Skills:** {', '.join(job.missing_skills) if job.missing_skills else 'None'}")
             lines.append(f"- **Reason:** {job.summary_reason}")
+            lines.append(f"- **Portal:** {job.source_portal}")
             lines.append(f"- **Apply:** [Link]({job.apply_url})\n")
             
         return "\n".join(lines)

@@ -34,6 +34,7 @@ class JobRepository:
             summary_reason=row["summary_reason"],
             apply_url=row["apply_url"],
             source_query=row["source_query"],
+            source_portal=row["source_portal"] if "source_portal" in row.keys() else "unknown",
             raw_snippet=row["raw_snippet"],
             status=JobStatus(row["status"]),
         )
@@ -53,12 +54,12 @@ class JobRepository:
                 id, company, title, location, apply_url,
                 extracted_min_yoe, extracted_max_yoe, yoe_match,
                 fit_score, matched_skills, missing_skills,
-                summary_reason, status, source_query, raw_snippet
+                summary_reason, status, source_query, source_portal, raw_snippet
             ) VALUES (
                 ?, ?, ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?,
-                ?, ?, ?, ?
+                ?, ?, ?, ?, ?
             )
         """
         params = (
@@ -76,6 +77,7 @@ class JobRepository:
             job.summary_reason,
             job.status.value,
             job.source_query,
+            job.source_portal,
             job.raw_snippet,
         )
         try:

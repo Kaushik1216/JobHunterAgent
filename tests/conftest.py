@@ -47,6 +47,7 @@ def sample_evaluated_job() -> EvaluatedJob:
         summary_reason="Good match",
         apply_url="https://linkedin.com/jobs/view/123",
         source_query="test query",
+        source_portal="linkedin",
         raw_snippet="We are looking for..."
     )
 

@@ -32,7 +32,8 @@ def test_pipeline_e2e(db_manager, repository, settings, tmp_path, sample_evaluat
         title="Test Engineer",
         url="https://linkedin.com/jobs/view/123",
         snippet="Test snippet",
-        source_query="test query"
+        source_query="test query",
+        source_portal="linkedin",
     )
     # The pipeline calls searcher.search()
     mock_searcher.search.return_value = [raw_job]

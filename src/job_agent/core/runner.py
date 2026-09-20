@@ -8,7 +8,7 @@ from job_agent.core.jd_parser import parse_jd, jd_to_search_targets
 from job_agent.core.pipeline import Pipeline
 from job_agent.storage.database import DatabaseManager
 from job_agent.storage.repository import JobRepository
-from job_agent.mcp_server.tools.search import LinkedInSearcher
+from job_agent.portals.composite import MultiPortalSearcher
 from job_agent.inference.client import LLMClient, OllamaClient
 from job_agent.inference.output_guard import OutputGuard
 from job_agent.export.markdown_exporter import MarkdownExporter
@@ -36,7 +36,7 @@ class AgentRunner:
         db.run_migrations()
         repo = JobRepository(db)
         
-        searcher = LinkedInSearcher(self._settings)
+        searcher = MultiPortalSearcher.from_settings(self._settings)
         llm_client = LLMClient(self._settings)
         guard = OutputGuard(llm_client)
         exporter = MarkdownExporter(self._settings.output_path)

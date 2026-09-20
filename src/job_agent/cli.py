@@ -8,7 +8,7 @@ from job_agent.config import get_settings
 
 app = typer.Typer(
     name="job-agent",
-    help="🔍 Autonomous LinkedIn Job Discovery Agent",
+    help="🔍 Autonomous multi-portal job discovery agent",
     add_completion=False,
 )
 
@@ -19,7 +19,7 @@ def run(verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verb
     if verbose:
         settings.log_level = "DEBUG"
     
-    typer.echo("[*] Launching Autonomous LinkedIn Job Discovery Agent...")
+    typer.echo("[*] Launching job discovery agent...")
     runner = AgentRunner(settings)
     summary = runner.run()
     

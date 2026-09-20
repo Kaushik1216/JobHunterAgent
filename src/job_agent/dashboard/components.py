@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from job_agent.models.schemas import EvaluatedJob
 from job_agent.models.enums import JobStatus
+from job_agent.portals.registry import apply_label_for_portal
 
 def render_summary_cards(stats: dict[str, int]) -> None:
     """Render summary metric cards: Total, Qualified, Applied, Skipped."""
@@ -28,6 +29,7 @@ def render_jobs_table(jobs: list[EvaluatedJob]) -> pd.DataFrame:
             "Title": j.title,
             "Fit Score": j.fit_score,
             "Location": j.location,
+            "Portal": j.source_portal,
             "Status": j.status.value,
             "Hash": j.url_hash()
         })
@@ -35,17 +37,20 @@ def render_jobs_table(jobs: list[EvaluatedJob]) -> pd.DataFrame:
     
     st.sidebar.subheader("Filters")
     companies = st.sidebar.multiselect("Company", df["Company"].unique())
+    portals = st.sidebar.multiselect("Portal", df["Portal"].unique())
     statuses = st.sidebar.multiselect("Status", df["Status"].unique(), default=[JobStatus.NEW.value])
     min_fit = st.sidebar.slider("Min Fit Score", 0.0, 1.0, 0.7, 0.05)
     
     filtered_df = df[df["Fit Score"] >= min_fit]
     if companies:
         filtered_df = filtered_df[filtered_df["Company"].isin(companies)]
+    if portals:
+        filtered_df = filtered_df[filtered_df["Portal"].isin(portals)]
     if statuses:
         filtered_df = filtered_df[filtered_df["Status"].isin(statuses)]
         
     st.dataframe(
-        filtered_df[["Company", "Title", "Fit Score", "Location", "Status"]],
+        filtered_df[["Company", "Title", "Fit Score", "Location", "Portal", "Status"]],
         use_container_width=True,
         hide_index=True
     )
@@ -67,7 +72,7 @@ def render_job_detail(job: EvaluatedJob) -> None:
             st.markdown(f"❌ {skill}")
             
     st.info(f"**AI Summary:** {job.summary_reason}")
-    st.link_button("Apply on LinkedIn", job.apply_url)
+    st.link_button(apply_label_for_portal(job.source_portal), job.apply_url)
 
 def render_status_updater(job: EvaluatedJob, on_update) -> None:
     """Render status update dropdown for a job."""

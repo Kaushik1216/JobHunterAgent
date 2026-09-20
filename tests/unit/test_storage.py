@@ -29,6 +29,7 @@ def test_save_and_get_job(repository, sample_evaluated_job):
     assert job is not None
     assert job.title == sample_evaluated_job.title
     assert job.company == sample_evaluated_job.company
+    assert job.source_portal == "linkedin"
 
 def test_save_duplicate_job(repository, sample_evaluated_job):
     repository.save_job(sample_evaluated_job)

@@ -6,7 +6,7 @@ import json
 PROMPT_VERSION = "v1.0"
 
 EXTRACTION_SYSTEM_PROMPT = """
-You are a precise job posting analyzer. Your task is to extract structured information from a LinkedIn job posting snippet and evaluate candidate-job fit.
+You are a precise job posting analyzer. Your task is to extract structured information from a job posting snippet and evaluate candidate-job fit.
 
 RULES:
 1. Extract ONLY information explicitly stated in the snippet. DO NOT infer or hallucinate.

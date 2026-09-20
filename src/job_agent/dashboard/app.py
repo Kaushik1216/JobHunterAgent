@@ -17,7 +17,7 @@ def main() -> None:
     )
     
     st.title("🔍 Job Discovery Agent")
-    st.caption("Autonomous LinkedIn job discovery & evaluation dashboard")
+    st.caption("Autonomous multi-portal job discovery & evaluation dashboard")
     
     settings = get_settings()
     db = DatabaseManager(settings.db_path)

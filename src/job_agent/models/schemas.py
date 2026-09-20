@@ -41,6 +41,7 @@ class RawJobResult(BaseModel):
     url: HttpUrl
     snippet: str
     source_query: str = ""
+    source_portal: str = "unknown"
 
 class EvaluatedJob(BaseModel):
     model_config = ConfigDict(
@@ -59,6 +60,7 @@ class EvaluatedJob(BaseModel):
                 "summary_reason": "Good match on core skills, meets YoE requirements.",
                 "apply_url": "https://linkedin.com/jobs/view/12345",
                 "source_query": "stripe software engineer remote",
+                "source_portal": "linkedin",
                 "raw_snippet": "We are looking for...",
                 "status": "NEW"
             }
@@ -76,6 +78,7 @@ class EvaluatedJob(BaseModel):
     summary_reason: str
     apply_url: str
     source_query: str = ""
+    source_portal: str = "unknown"
     raw_snippet: str = ""
     status: JobStatus = JobStatus.NEW
 

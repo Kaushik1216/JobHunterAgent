@@ -17,7 +17,7 @@ class OutputGuard:
         self._validation_success_count = 0
         self._validation_failure_count = 0
     
-    def validate_and_parse(self, raw_output: str, apply_url: str, source_query: str = "", raw_snippet: str = "") -> EvaluatedJob:
+    def validate_and_parse(self, raw_output: str, apply_url: str, source_query: str = "", raw_snippet: str = "", source_portal: str = "unknown") -> EvaluatedJob:
         """Parse raw SLM output into EvaluatedJob, retrying with correction prompt on failure."""
         current_output = raw_output
         
@@ -31,6 +31,7 @@ class OutputGuard:
                 parsed_json["apply_url"] = apply_url
                 parsed_json["source_query"] = source_query
                 parsed_json["raw_snippet"] = raw_snippet
+                parsed_json["source_portal"] = source_portal
                 if "status" not in parsed_json or not parsed_json["status"]:
                     parsed_json["status"] = "NEW"
                 # Convert status string to enum for strict mode

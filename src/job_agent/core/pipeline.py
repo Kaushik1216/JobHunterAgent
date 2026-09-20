@@ -4,13 +4,14 @@ from job_agent.models.enums import PipelineStage, JobStatus
 from job_agent.models.schemas import SearchTarget, RawJobResult, EvaluatedJob
 from job_agent.observability.metrics import MetricsCollector
 from job_agent.inference.prompts import build_extraction_prompt, EXTRACTION_SYSTEM_PROMPT, get_extraction_schema
+from job_agent.portals.base import JobSearcher
 
 logger = structlog.get_logger()
 
 class Pipeline:
     """Coordinates the job discovery pipeline stages."""
     
-    def __init__(self, searcher, repository, ollama_client, output_guard, exporter, metrics: MetricsCollector, settings):
+    def __init__(self, searcher: JobSearcher, repository, ollama_client, output_guard, exporter, metrics: MetricsCollector, settings):
         self.searcher = searcher
         self.repository = repository
         self.ollama_client = ollama_client
@@ -108,6 +109,7 @@ class Pipeline:
             apply_url=str(result.url),
             source_query=result.source_query,
             raw_snippet=result.snippet,
+            source_portal=result.source_portal,
         )
         return job
 

@@ -11,7 +11,7 @@ CIRCUIT_BREAKER_THRESHOLD = 3
 CIRCUIT_BREAKER_COOLDOWN = 60
 MAX_INFERENCE_RETRIES = 3
 INFERENCE_TIMEOUT = 30
-LINKEDIN_DORK_TEMPLATE = 'site:linkedin.com/jobs/view "{company}" "{title}" "{location}"'
+DEFAULT_SEARCH_PORTALS = "linkedin,indeed,naukri,greenhouse,lever"
 SEARCH_USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
@@ -20,5 +20,5 @@ SEARCH_USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
 ]
 SUPPORTED_LOG_FORMATS = ("json", "console")
-APP_NAME = "linkedin-job-agent"
+APP_NAME = "job-agent"
 APP_VERSION = "1.0.0"

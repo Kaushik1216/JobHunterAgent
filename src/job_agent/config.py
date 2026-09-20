@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     search_max_results: int = 5
     search_circuit_breaker_threshold: int = 3
     search_circuit_breaker_cooldown: int = 60
+    # Comma-separated portal ids from job_agent.portals.PORTAL_REGISTRY
+    search_portals: str = "linkedin,indeed,naukri,greenhouse,lever"
+
+    def enabled_portal_ids(self) -> list[str]:
+        return [portal_id.strip().lower() for portal_id in self.search_portals.split(",") if portal_id.strip()]
     
     # Evaluation
     fit_score_threshold: float = 0.70
