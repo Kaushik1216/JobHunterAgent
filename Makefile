@@ -1,36 +1,33 @@
-.PHONY: install lint format typecheck test evaluate run dashboard docker-up docker-down clean
+.PHONY: install lint format typecheck test evaluate run dashboard dev clean
 
 install:
 	uv pip install -e ".[dev]"
 
 lint:
-	ruff check .
+	uv run ruff check .
 
 format:
-	ruff format .
+	uv run ruff format .
 
 typecheck:
-	mypy src tests
+	uv run mypy src tests
 
 test:
-	pytest
+	uv run pytest tests/ -v
 
 evaluate:
 	@echo "Evaluating..."
 
 run:
-	job-agent
+	uv run job-agent
 
 dashboard:
 	cd frontend && npm install && npm run build
-	job-agent dashboard
+	uv run job-agent dashboard
 
-docker-up:
-	docker-compose up -d
-
-docker-down:
-	docker-compose down
+dev:
+	cd frontend && npm install && npm run build && cd .. && uv run job-agent dashboard
 
 clean:
-	rm -rf .pytest_cache .ruff_cache .mypy_cache build dist *.egg-info
-	find . -type d -name __pycache__ -exec rm -rf {} +
+	Remove-Item -Recurse -Force -ErrorAction SilentlyContinue .pytest_cache, .ruff_cache, .mypy_cache, build, dist
+	Get-ChildItem -Recurse -Directory -Name __pycache__ | Remove-Item -Recurse -Force

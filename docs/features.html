@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobHunterAgent — Features & Implementation Architecture</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- Mermaid.js for interactive sequence diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-secondary: #0f172a;
+      --bg-card: #131d33;
+      --bg-card-hover: #192642;
+      --border-color: #1e293b;
+      --border-accent: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-indigo: #6366f1;
+      --accent-sky: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #a855f7;
+      --code-bg: #0b1120;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 320px;
+      min-width: 320px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+      overflow-y: auto;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.25rem;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #6366f1, #38bdf8);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+
+    .brand-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--accent-sky);
+      font-weight: 500;
+    }
+
+    .search-box {
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem 0.85rem 0.6rem 2.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    .nav-group-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      font-weight: 700;
+      margin: 1rem 0 0.5rem 0.5rem;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.825rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item a:hover {
+      color: var(--text-main);
+      background: var(--bg-card);
+    }
+
+    .nav-item a.active {
+      color: white;
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.25), transparent);
+      border-left: 3px solid var(--accent-indigo);
+    }
+
+    .badge-counter {
+      margin-left: auto;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Main Content Area */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .feature-card,
+    .hero,
+    #inventory {
+      scroll-margin-top: 2rem;
+    }
+
+    .content {
+      flex: 1;
+      padding: 2.5rem 3.5rem;
+      max-width: 1200px;
+      min-width: 0;
+    }
+
+    /* Hero Banner */
+    .hero {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--accent-sky);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.8rem;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 800px;
+      margin-bottom: 1.8rem;
+    }
+
+    .meta-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .meta-pill {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .meta-pill span {
+      color: var(--text-dim);
+    }
+
+    /* Section Headers */
+    .section-title-wrap {
+      margin: 3.5rem 0 1.5rem 0;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-title-num {
+      color: var(--accent-indigo);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+    }
+
+    /* Feature Inventory Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-bottom: 2.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.725rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.725rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-discovery { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-ai { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-storage { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-dashboard { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .badge-protocol { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-export { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    /* Feature Card */
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-accent);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .feature-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-title-group h3 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .feature-title-group p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Key Components Box */
+    .component-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.9rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .component-label {
+      color: var(--text-dim);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 0.5rem;
+    }
+
+    .component-tag {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--accent-sky);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    /* Implementation Highlights */
+    .highlights-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .highlight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .highlight-bullet {
+      color: var(--accent-indigo);
+      font-size: 1.1rem;
+      line-height: 1;
+      margin-top: 0.15rem;
+    }
+
+    .highlight-item strong {
+      color: var(--text-main);
+    }
+
+    /* Diagram Wrapper */
+    .diagram-container {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .diagram-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .diagram-badge {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-indigo);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 4rem;
+      padding: 2rem 0;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .content {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">JA</div>
+      <div>
+        <div class="brand-title">JobHunterAgent</div>
+        <div class="brand-subtitle">Architecture & Sequence Specs</div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="featureSearch" placeholder="Filter features..." onkeyup="filterFeatures()" />
+    </div>
+
+    <div class="nav-group-title">Overview</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#overview" class="active">Overview & Stack</a></li>
+      <li class="nav-item"><a href="#inventory">Feature Inventory <span class="badge-counter">13</span></a></li>
+    </ul>
+
+    <div class="nav-group-title">Job Discovery & Scraping</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#feature-1">1. Multi-Portal Search</a></li>
+      <li class="nav-item"><a href="#feature-2">2. Concurrent JD Enrichment</a></li>
+      <li class="nav-item"><a href="#feature-3">3. Dual Pipeline Modes</a></li>
+    </ul>
+
+    <div class="nav-group-title">AI & SLM Evaluation</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#feature-4">4. AI Fit Scoring & Extraction</a></li>
+      <li class="nav-item"><a href="#feature-5">5. OutputGuard Schema Adherence</a></li>
+      <li class="nav-item"><a href="#feature-6">6. On-Demand Match / Rematch</a></li>
+    </ul>
+
+    <div class="nav-group-title">Data & Management</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#feature-7">7. SQLite WAL Storage Engine</a></li>
+      <li class="nav-item"><a href="#feature-8">8. Company Catalog Management</a></li>
+      <li class="nav-item"><a href="#feature-9">9. Model Switcher & Probe</a></li>
+    </ul>
+
+    <div class="nav-group-title">UI & Integrations</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#feature-10">10. Interactive Web Dashboard</a></li>
+      <li class="nav-item"><a href="#feature-11">11. Model Context Protocol (MCP)</a></li>
+      <li class="nav-item"><a href="#feature-12">12. Markdown & CSV Reporting</a></li>
+    </ul>
+
+    <div class="nav-group-title">Candidate Profile & Intelligence</div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="#feature-13">13. Resume AI Extraction</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content Body -->
+  <main class="content">
+
+    <!-- Hero Section -->
+    <section class="hero" id="overview">
+      <div class="hero-tag">System Architecture & Feature Specification</div>
+      <h1>JobHunterAgent: Features & Technical Sequence Architecture</h1>
+      <p>
+        An enterprise-grade autonomous job hunting and candidate-profile matching agent. Orchestrates real-time multi-portal scrapers, resilient HTML sanitizers, local SLM / cloud LLM inference engines with schema-guided self-correction, and an interactive React web dashboard.
+      </p>
+
+      <div class="meta-pills">
+        <div class="meta-pill"><span>Engine:</span> Python 3.13 + FastAPI + uv</div>
+        <div class="meta-pill"><span>Inference:</span> Ollama / LM Studio / OpenAI / Gemini / Claude</div>
+        <div class="meta-pill"><span>Database:</span> SQLite (WAL Mode, Concurrency-Safe)</div>
+        <div class="meta-pill"><span>Resume Vault:</span> Git-Ignored + SLM Parser (PDF / DOCX)</div>
+        <div class="meta-pill"><span>Frontend:</span> React 18 + Vite + Tailwind CSS + Lucide</div>
+        <div class="meta-pill"><span>Integration:</span> Model Context Protocol (FastMCP)</div>
+      </div>
+    </section>
+
+    <!-- Feature Inventory Section -->
+    <div class="section-title-wrap" id="inventory">
+      <h2 class="section-title"><span class="section-title-num">00.</span> Master Feature Inventory</h2>
+      <span style="color: var(--text-dim); font-size: 0.85rem;">13 Production Modules</span>
+    </div>
+
+    <div class="table-container">
+      <table id="inventoryTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Feature Name</th>
+            <th>Category</th>
+            <th>Core Modules / Files</th>
+            <th>Key Deliverables</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>01</strong></td>
+            <td><a href="#feature-1" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Multi-Portal Job Discovery</a></td>
+            <td><span class="badge badge-discovery">Discovery</span></td>
+            <td><code>src/portals/</code> (linkedin, indeed, ats)</td>
+            <td>Concurrent scraping, rate limiters, circuit breakers, link normalization</td>
+          </tr>
+          <tr>
+            <td><strong>02</strong></td>
+            <td><a href="#feature-2" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Concurrent JD Enrichment & Expiry Check</a></td>
+            <td><span class="badge badge-discovery">Discovery</span></td>
+            <td><code>src/portals/jd_fetcher.py</code></td>
+            <td>Deep HTML scraping, tag stripping, 302 redirect & expired posting detection</td>
+          </tr>
+          <tr>
+            <td><strong>03</strong></td>
+            <td><a href="#feature-3" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Dual Pipeline Execution Modes</a></td>
+            <td><span class="badge badge-discovery">Orchestration</span></td>
+            <td><code>src/agent/pipeline.py</code>, <code>run_manager.py</code></td>
+            <td>Search Only (cheap discovery), Match Only (batch AI), and Search & Match</td>
+          </tr>
+          <tr>
+            <td><strong>04</strong></td>
+            <td><a href="#feature-4" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">AI Fit Scoring & Evaluation Engine</a></td>
+            <td><span class="badge badge-ai">Inference</span></td>
+            <td><code>src/inference/client.py</code>, <code>prompts.py</code></td>
+            <td>Hybrid local/online LLM inference, 0-100 fit scoring, YoE gap, pros & cons</td>
+          </tr>
+          <tr>
+            <td><strong>05</strong></td>
+            <td><a href="#feature-5" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">OutputGuard Schema Adherence & Retry</a></td>
+            <td><span class="badge badge-ai">Inference</span></td>
+            <td><code>src/inference/output_guard.py</code></td>
+            <td>Pydantic schema enforcement, markdown stripper, error feedback retry loop</td>
+          </tr>
+          <tr>
+            <td><strong>06</strong></td>
+            <td><a href="#feature-6" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">On-Demand Single Job AI Match / Rematch</a></td>
+            <td><span class="badge badge-ai">Interactive</span></td>
+            <td><code>src/dashboard/api.py</code> (POST /api/jobs/{id}/evaluate)</td>
+            <td>Instant single-card evaluation with in-place SQLite sync and live UI update</td>
+          </tr>
+          <tr>
+            <td><strong>07</strong></td>
+            <td><a href="#feature-7" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">SQLite WAL Storage & Concurrency Engine</a></td>
+            <td><span class="badge badge-storage">Storage</span></td>
+            <td><code>src/database/repository.py</code>, <code>database.py</code></td>
+            <td>WAL mode, auto-migrations, dual-key resolution (ID or URL), status transitions</td>
+          </tr>
+          <tr>
+            <td><strong>08</strong></td>
+            <td><a href="#feature-8" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Company Catalog & Criteria Management</a></td>
+            <td><span class="badge badge-dashboard">Management</span></td>
+            <td><code>src/dashboard/api.py</code>, <code>criteria_parser.py</code></td>
+            <td>30+ top tech firms catalog, database enablement toggles, criteria.yaml sync</td>
+          </tr>
+          <tr>
+            <td><strong>09</strong></td>
+            <td><a href="#feature-9" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Model Switcher & Interactive Health Probe</a></td>
+            <td><span class="badge badge-dashboard">Settings</span></td>
+            <td><code>src/inference/client.py</code>, <code>POST /api/settings/test-model</code></td>
+            <td>Local vs Online provider switch, API key input, live endpoint latency test</td>
+          </tr>
+          <tr>
+            <td><strong>10</strong></td>
+            <td><a href="#feature-10" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Interactive Web Dashboard & Kanban Board</a></td>
+            <td><span class="badge badge-dashboard">Dashboard</span></td>
+            <td><code>frontend/src/</code> (React 18 + Tailwind SPA)</td>
+            <td>Real-time polling, faceted filters, slide-out drawer, direct role search fallback</td>
+          </tr>
+          <tr>
+            <td><strong>11</strong></td>
+            <td><a href="#feature-11" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Model Context Protocol (MCP) Server</a></td>
+            <td><span class="badge badge-protocol">Integration</span></td>
+            <td><code>src/mcp_server/server.py</code></td>
+            <td>FastMCP tools for LLM agent integration: search, persist, deduplicate</td>
+          </tr>
+          <tr>
+            <td><strong>12</strong></td>
+            <td><a href="#feature-12" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Markdown & CSV Reporting & Export</a></td>
+            <td><span class="badge badge-export">Export</span></td>
+            <td><code>src/export/markdown_exporter.py</code>, <code>api.py</code></td>
+            <td>GitHub-formatted tabulated markdown report generator, CSV streaming download</td>
+          </tr>
+          <tr>
+            <td><strong>13</strong></td>
+            <td><a href="#feature-13" style="color:var(--accent-sky); text-decoration:none; font-weight:600;">Resume Profile & AI Extraction Engine</a></td>
+            <td><span class="badge badge-ai">Inference</span></td>
+            <td><code>src/agent/resume_parser.py</code>, <code>api.py</code></td>
+            <td>Local git-ignored vault, one-time SLM/LLM profile extraction, categorized skills & dynamic candidate matching</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- DETAILED FEATURE SECTIONS & SEQUENCE DIAGRAMS                         -->
+    <!-- ===================================================================== -->
+
+    <!-- FEATURE 1 -->
+    <article class="feature-card" id="feature-1">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">01.</span> Multi-Portal Job Search & Discovery</h3>
+          <p>Discovers job listings across LinkedIn, Indeed, and Company ATS Portals (Greenhouse, Lever, Workday) with rate-limiting and circuit breakers.</p>
+        </div>
+        <span class="badge badge-discovery">Discovery</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/portals/composite.py</span>
+        <span class="component-tag">src/portals/linkedin.py</span>
+        <span class="component-tag">src/portals/indeed.py</span>
+        <span class="component-tag">src/portals/base.py</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Anti-Scraping Protection:</strong> Employs realistic browser user-agents, random jitter backoff, and localized session header simulation.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Circuit Breaker Isolation:</strong> If a portal encounters consecutive 429/403 rate limits, the circuit breaker opens to isolate failure without halting other active portals.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>URL Normalization:</strong> Strips DuckDuckGo redirect wrappers (<code>uddg=</code>), converts localized LinkedIn slugs to canonical <code>https://www.linkedin.com/jobs/view/{id}</code>, and eliminates ATS tracking tokens.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Multi-Portal Search</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Runner as "Pipeline Runner"
+    participant MultiSearcher as "MultiPortalSearcher"
+    participant Portal as "JobPortal (LinkedIn / Indeed / ATS)"
+    participant Base as "URL Normalizer"
+    participant DB as "JobRepository (SQLite)"
+
+    Runner->>MultiSearcher: search(company, title, location, max_results)
+    loop For each enabled portal in registry
+        MultiSearcher->>Portal: check circuit breaker state
+        alt Circuit Breaker is OPEN
+            Portal-->>MultiSearcher: Skip portal (CircuitBreakerOpenError)
+        else Circuit Breaker is CLOSED
+            Portal->>Portal: build query and wait for rate limiter
+            Portal->>Portal: HTTP GET search endpoint
+            alt Rate Limited (HTTP 429 / 403)
+                Portal->>Portal: record failure and trip circuit
+                Portal-->>MultiSearcher: Continue with remaining portals
+            else Search Succeeded (HTTP 200)
+                Portal->>Portal: parse HTML job cards
+                loop For each discovered raw job
+                    Portal->>Base: normalize_job_url(raw_url)
+                    Base-->>Portal: canonical URL (clean ID, no trackers)
+                    Portal->>Portal: Instantiate RawJobResult
+                end
+                Portal-->>MultiSearcher: list of RawJobResult
+            end
+        end
+    end
+    MultiSearcher->>MultiSearcher: deduplicate_by_url()
+    loop For each unique RawJobResult
+        MultiSearcher->>DB: job_exists(url_hash)
+        DB-->>MultiSearcher: exists flag (true = skip, false = new)
+    end
+    MultiSearcher-->>Runner: Return list of new RawJobResult
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 2 -->
+    <article class="feature-card" id="feature-2">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">02.</span> Concurrent JD Enrichment & Expiry Check</h3>
+          <p>Concurrently scrapes the full job description text for newly discovered jobs, strips boilerplate markup, and flags expired or redirected listings.</p>
+        </div>
+        <span class="badge badge-discovery">Discovery</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/portals/jd_fetcher.py</span>
+        <span class="component-tag">concurrent.futures.ThreadPoolExecutor</span>
+        <span class="component-tag">bs4.BeautifulSoup</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Concurrent Fetching:</strong> Uses a bounded worker pool (up to 8 threads) to enrich dozens of raw listings simultaneously.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Silent Expiry & Redirect Catching:</strong> Detects if single-job URLs (e.g. <code>/jobs/view/123</code>) get 302-redirected to generic search landing pages (<code>/jobs/search/</code>), automatically tagging them as expired.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>DOM Sanitization:</strong> Removes scripts, stylesheets, SVG headers, career site navbars, and cookie banners to reduce prompt token footprint by ~70%.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Concurrent JD Enrichment</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Pipeline as "agent.pipeline.Pipeline"
+    participant Enriched as "jd_fetcher.enrich_jobs_concurrently"
+    participant Worker as "ThreadPool Worker"
+    participant External as "Portal Server (LinkedIn / Indeed)"
+    participant Sanitizer as "HTML Cleaner"
+    participant DB as "JobRepository"
+
+    Pipeline->>Enriched: enrich_jobs_concurrently(raw_results)
+    Enriched->>Enriched: Dispatch tasks to ThreadPoolExecutor(max_workers=8)
+    par Concurrent Workers
+        Worker->>External: HTTP GET apply_url (follow redirects)
+        External-->>Worker: HTTP 200 or 302 with final_url and HTML
+        Worker->>Worker: Check if redirected away from job view
+        alt Job Expired or Closed Listing
+            Worker->>Worker: Set is_expired = True
+            Worker-->>Enriched: Job marked expired (skipped)
+        else Listing is Active
+            Worker->>Sanitizer: clean_html_to_text(html_content)
+            Sanitizer->>Sanitizer: Strip script, style, nav, and footer tags
+            Sanitizer-->>Worker: Return clean text snippet
+            Worker->>Worker: Update RawJobResult snippet
+            Worker-->>Enriched: Return enriched RawJobResult
+        end
+    end
+    Enriched-->>Pipeline: list of enriched RawJobResult
+    loop For each enriched result
+        Pipeline->>Pipeline: EvaluatedJob.from_discovery(result, target)
+        Pipeline->>DB: save_job(job) with status UNPROCESSED
+    end
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 3 -->
+    <article class="feature-card" id="feature-3">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">03.</span> Dual Pipeline Execution Modes</h3>
+          <p>Enables decoupled operations: fast, zero-token "Search Only" discovery vs. offline batch "Match Only" AI evaluation vs. unified "Search & Match".</p>
+        </div>
+        <span class="badge badge-discovery">Orchestration</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/dashboard/run_manager.py</span>
+        <span class="component-tag">src/agent/runner.py</span>
+        <span class="component-tag">src/agent/pipeline.py</span>
+        <span class="component-tag">models.enums.RunMode</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Mode 1 (Search Only):</strong> Scrapes portals, deduplicates against SQLite, downloads full JDs, and saves jobs as <code>UNPROCESSED</code> without consuming LLM tokens.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Mode 2 (Match Only):</strong> Queries all pending <code>UNPROCESSED</code> jobs from the database and batches them through the LLM inference evaluator.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Mode 3 (Search & Match):</strong> Executes end-to-end multi-portal discovery, immediate AI evaluation, threshold filtering, and status persistence.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Run Manager Modes</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "User (Dashboard / CLI)"
+    participant API as "FastAPI (POST /api/runs)"
+    participant RunMgr as "RunManager (Thread-Safe)"
+    participant Runner as "AgentRunner"
+    participant Pipeline as "agent.pipeline.Pipeline"
+    participant DB as "JobRepository"
+
+    User->>API: POST /api/runs (search, match, or search_and_match)
+    API->>RunMgr: start(mode, targets)
+    RunMgr->>RunMgr: Verify lock and ensure status is not running
+    RunMgr->>RunMgr: Spawn background thread _execute(mode, targets)
+    RunMgr-->>API: 200 OK (status: running)
+    API-->>User: Immediate response with run snapshot
+
+    critical Background Thread Execution
+        alt Mode is SEARCH
+            Runner->>Pipeline: process_target(target, mode=SEARCH)
+            Pipeline->>Pipeline: discover_target(target): Scrape and Enrich
+            Pipeline->>DB: save_job(job) with status UNPROCESSED
+            Pipeline-->>Runner: Return discovered jobs (zero LLM calls)
+        else Mode is MATCH
+            Runner->>Pipeline: process_target(target, mode=MATCH)
+            Pipeline->>DB: get_unevaluated_jobs()
+            DB-->>Pipeline: list of UNPROCESSED EvaluatedJob
+            Pipeline->>Pipeline: _match_jobs(pending) via LLM
+            Pipeline->>DB: update_job(evaluated) with status NEW or SKIPPED
+        else Mode is SEARCH_AND_MATCH
+            Runner->>Pipeline: process_target(target, mode=SEARCH_AND_MATCH)
+            Pipeline->>Pipeline: discover_target(): Scrape and Enrich
+            Pipeline->>Pipeline: _match_jobs(): Immediate AI evaluation
+            Pipeline->>DB: save_job(evaluated)
+        end
+        Runner->>RunMgr: Return ExecutionSummary
+        RunMgr->>RunMgr: Update state: status completed, summary data
+    end
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 4 -->
+    <article class="feature-card" id="feature-4">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">04.</span> AI Fit Scoring & Evaluation Engine</h3>
+          <p>Extracts deep qualifications, required skills, and experience constraints from raw job descriptions and computes a weighted 0-100 fit score.</p>
+        </div>
+        <span class="badge badge-ai">Inference</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/inference/client.py</span>
+        <span class="component-tag">src/inference/prompts.py</span>
+        <span class="component-tag">src/models/schemas.py</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Hybrid Provider Support:</strong> Transparently communicates with local Ollama, LM Studio, vLLM, and cloud providers (OpenAI, Gemini, Anthropic, Groq).</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Structured Output Prompting:</strong> Enforces JSON schema output specifying <code>fit_score</code>, <code>is_match</code>, <code>pros</code>, <code>cons</code>, <code>matched_skills</code>, <code>missing_skills</code>, and <code>experience_gap</code>.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Local Model Weight Timeout Bypass:</strong> Implements 10-second connect timeout with infinite read timeout for local models to prevent drops during cold-start GPU/RAM weight loading.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: AI Fit Scoring</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Pipeline as "agent.pipeline.Pipeline"
+    participant Prompts as "inference.prompts"
+    participant Client as "inference.client.LLMClient"
+    participant LLM as "Local SLM / Cloud LLM"
+    participant Guard as "inference.output_guard.OutputGuard"
+
+    Pipeline->>Prompts: build_extraction_prompt(snippet, title, skills, target_yoe)
+    Prompts-->>Pipeline: formatted prompt and system prompt with JSON schema
+    Pipeline->>Client: generate(prompt, system_prompt)
+    Client->>Client: Prepare auth headers (Bearer token if online)
+    Client->>Client: Configure timeouts (fast connect, infinite read if local)
+    Client->>LLM: HTTP POST /v1/chat/completions (temperature=0.0)
+    LLM->>LLM: Perform attention and token inference
+    LLM-->>Client: Raw JSON string response
+    Client-->>Pipeline: response_text
+    Pipeline->>Guard: validate_and_parse(response_text, apply_url)
+    Guard-->>Pipeline: Validated EvaluatedJob instance
+    Pipeline->>Pipeline: Filter by fit_score threshold
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 5 -->
+    <article class="feature-card" id="feature-5">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">05.</span> OutputGuard Schema Adherence & Retry Loop</h3>
+          <p>Resilient parser that protects the pipeline from hallucinated or malformed LLM outputs with automatic feedback self-correction.</p>
+        </div>
+        <span class="badge badge-ai">Inference</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/inference/output_guard.py</span>
+        <span class="component-tag">pydantic.BaseModel</span>
+        <span class="component-tag">exceptions.OutputValidationError</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Fenced Markdown Stripper:</strong> Automatically extracts embedded JSON from markdown code blocks (<code>```json ... ```</code>) or plain text.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Self-Correcting Prompt Loop:</strong> If the model outputs broken JSON or violates schema constraints, OutputGuard sends the exact parsing error back to the model for an in-place fix (up to 2 retries).</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Adherence Rate Metric:</strong> Calculates and tracks real-time schema adherence rate across runs for observability.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: OutputGuard Self-Correction</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Pipeline as "agent.pipeline.Pipeline"
+    participant Guard as "OutputGuard"
+    participant Extractor as "Output JSON Extractor"
+    participant Schema as "EvaluatedJob (Pydantic)"
+    participant Client as "LLMClient"
+
+    Pipeline->>Guard: validate_and_parse(raw_output, apply_url)
+    loop Up to max_retries (default 2)
+        Guard->>Extractor: _extract_json(current_output)
+        alt Regex finds valid JSON block
+            Extractor-->>Guard: dict parsed_json
+            Guard->>Schema: EvaluatedJob.model_validate(parsed_json)
+            alt Pydantic Validation Succeeds
+                Schema-->>Guard: Valid EvaluatedJob object
+                Guard->>Guard: Increment validation_success_count
+                Guard-->>Pipeline: Return valid EvaluatedJob
+            else Validation Fails (missing keys or wrong types)
+                Schema-->>Guard: Pydantic ValidationError
+            end
+        else JSON Decode Error (malformed syntax)
+            Extractor-->>Guard: OutputValidationError
+        end
+
+        opt Retry if attempt within limit
+            Guard->>Guard: get_correction_prompt(error_message)
+            Guard->>Client: generate correction prompt with error feedback
+            Client-->>Guard: corrected_output
+            Guard->>Guard: Update current_output = corrected_output
+        end
+    end
+    Guard->>Guard: Increment validation_failure_count
+    Guard-->>Pipeline: Raise OutputValidationError
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 6 -->
+    <article class="feature-card" id="feature-6">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">06.</span> On-Demand Single Job AI Match / Rematch</h3>
+          <p>Enables users to interactively score or re-score any job listing directly from the UI modal or panel with immediate database synchronization.</p>
+        </div>
+        <span class="badge badge-ai">Interactive</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/dashboard/api.py</span>
+        <span class="component-tag">src/agent/pipeline.py (_match_one)</span>
+        <span class="component-tag">src/database/repository.py</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Dual-Key Lookup:</strong> Uses <code>WHERE id = ? OR apply_url = ?</code> to safely locate the record regardless of prior URL mutations.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Live Re-Scraping:</strong> If the stored snippet is sparse or missing, dynamically fetches the latest live JD before running evaluation.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>In-Place State Replacement:</strong> Updates the existing SQLite record while preserving application lifecycle flags, bookmarks, and discovery dates.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: On-Demand Job Match / Rematch</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "User (Job Modal / Panel)"
+    participant UI as "React Dashboard"
+    participant API as "FastAPI (/api/jobs/:id/evaluate)"
+    participant DB as "JobRepository"
+    participant Fetcher as "jd_fetcher.fetch_job_description"
+    participant Pipeline as "agent.pipeline.Pipeline"
+    participant LLM as "LLM Inference Provider"
+
+    User->>UI: Clicks Match with AI or Rematch with AI
+    UI->>UI: Set button state to loading
+    UI->>API: POST /api/jobs/:id/evaluate
+    API->>DB: get_job(job_id) via id or apply_url
+    DB-->>API: Return existing EvaluatedJob
+    alt Snippet is missing or short
+        API->>Fetcher: fetch_job_description(job.apply_url)
+        Fetcher-->>API: Return full description and expiry status
+    end
+    API->>Pipeline: _match_one(job)
+    Pipeline->>LLM: Evaluate fit score, pros, cons, and YoE match
+    LLM-->>Pipeline: Structured evaluation payload
+    Pipeline->>Pipeline: Merge evaluation into EvaluatedJob
+    Pipeline->>DB: update_job(merged) in SQLite
+    DB-->>Pipeline: Job record updated
+    Pipeline-->>API: Return updated EvaluatedJob
+    API-->>UI: 200 OK (serialized job with fit score, pros, cons)
+    UI->>UI: Update card badge, score meter, and tabs
+    UI-->>User: Display match results and updated qualification tag
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 7 -->
+    <article class="feature-card" id="feature-7">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">07.</span> SQLite WAL Storage & Concurrency Engine</h3>
+          <p>High-performance embedded datastore with Write-Ahead Logging and automatic schema migrations for seamless multi-reader concurrency.</p>
+        </div>
+        <span class="badge badge-storage">Storage</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/database/database.py</span>
+        <span class="component-tag">src/database/repository.py</span>
+        <span class="component-tag">src/database/migrations.py</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>WAL Concurrency:</strong> <code>PRAGMA journal_mode=WAL</code> and <code>busy_timeout=5000</code> enable concurrent dashboard queries while the background scraper writes.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Zero-Downtime Migrations:</strong> Automated schema version tracking safely applies schema alterations (e.g. adding target companies, YOE columns) idempotently on launch.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Lifecycle Status FSM:</strong> Governs job state progression: <code>UNPROCESSED</code> &rarr; <code>NEW</code> &rarr; <code>APPLIED</code> / <code>BOOKMARKED</code> / <code>REJECTED</code> / <code>EXPIRED</code>.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: SQLite Storage & Concurrency</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant App as "Dashboard / Runner Init"
+    participant DB as "DatabaseManager"
+    participant Migrator as "migrations.py"
+    participant SQLite as "SQLite File (jobs_vault.db)"
+    participant Reader as "Web Dashboard Reader"
+    participant Writer as "Background Pipeline Writer"
+
+    App->>DB: connect()
+    DB->>SQLite: PRAGMA journal_mode = WAL
+    DB->>SQLite: PRAGMA busy_timeout = 5000
+    DB->>Migrator: run_migrations(connection)
+    Migrator->>SQLite: Check schema_migrations table
+    Migrator->>SQLite: Apply incremental migrations safely
+    Migrator-->>DB: Migrations up to date
+
+    par Concurrent Read and Write
+        Writer->>SQLite: BEGIN IMMEDIATE TRANSACTION
+        Writer->>SQLite: INSERT OR REPLACE INTO jobs VALUES (...)
+        Note over Writer,SQLite: Writes to jobs_vault.db-wal log
+        Writer->>SQLite: COMMIT
+    and
+        Reader->>SQLite: SELECT from jobs WHERE fit_score is qualified
+        Note over Reader,SQLite: Reads snapshot without blocking writer
+        SQLite-->>Reader: Returns job rows instantly
+    end
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 8 -->
+    <article class="feature-card" id="feature-8">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">08.</span> Company Catalog & Criteria Management</h3>
+          <p>Curated catalog of 30+ premier tech companies and unicorns with dynamic per-company enablement toggles and automatic criteria file synchronization.</p>
+        </div>
+        <span class="badge badge-dashboard">Management</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/dashboard/api.py</span>
+        <span class="component-tag">src/agent/criteria_parser.py</span>
+        <span class="component-tag">config/criteria.yaml</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Pre-Seeded Catalog:</strong> Includes Google, Microsoft, Amazon, NVIDIA, Apple, Stripe, Netflix, Databricks, Snowflake, Swiggy, Zomato, and more.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Multi-Target Synchronization:</strong> Toggling companies on the Settings page updates the database and rewrites <code>config/criteria.yaml</code> to align CLI and Dashboard runs.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Automated TTL Purging:</strong> Allows setting retention thresholds (e.g. 30 days) to automatically clean stale listings.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Company Catalog & Settings Sync</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "User (Settings Route)"
+    participant UI as "React Settings UI"
+    participant API as "FastAPI (/api/settings)"
+    participant DB as "JobRepository"
+    participant YAML as "config/criteria.yaml"
+    participant Env as "Environment Config (.env)"
+
+    User->>UI: Selects target companies and adjusts search settings
+    User->>UI: Clicks Save Settings
+    UI->>API: POST /api/settings (companies, search_portals, search_max_days)
+    API->>DB: set_enabled_companies(companies)
+    DB->>DB: UPDATE target_companies SET enabled = 1
+    API->>YAML: Parse existing criteria.yaml
+    API->>YAML: Rewrite targets list with active companies
+    API->>Env: Update JOB_AGENT_SEARCH_PORTALS and max days
+    API->>DB: purge_jobs(ttl_days) to delete expired records
+    API-->>UI: 200 OK (status: ok, deleted_jobs count)
+    UI-->>User: Display Settings saved successfully notification
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 9 -->
+    <article class="feature-card" id="feature-9">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">09.</span> Model Switcher & Interactive Health Probe</h3>
+          <p>Seamless toggle between local and cloud LLMs with custom endpoints, API keys, and real-time live connection health testing.</p>
+        </div>
+        <span class="badge badge-dashboard">Settings</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/inference/client.py</span>
+        <span class="component-tag">src/dashboard/api.py</span>
+        <span class="component-tag">httpx.Client</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Local vs Online Switcher:</strong> Switch between LM Studio / Ollama (localhost) and cloud providers (OpenAI, Gemini, Anthropic) in seconds.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Model Diagnostic Probe:</strong> The "Test Connection" button sends a diagnostic ping to <code>/v1/models</code> or <code>/api/tags</code> and measures round-trip latency.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Model Auto-Discovery:</strong> Detects if the requested model is loaded in VRAM and displays available alternatives if missing.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Model Connection Health Probe</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "User (Settings Route)"
+    participant UI as "React Model Settings Form"
+    participant API as "FastAPI (/api/settings/test-model)"
+    participant Probe as "client.check_llm_connection"
+    participant LLMServer as "LLM Server (Local / Cloud)"
+
+    User->>UI: Enters Base URL, Model Name, and API Key
+    User->>UI: Clicks Test Connection
+    UI->>UI: Set testing state to loading
+    UI->>API: POST /api/settings/test-model (base_url, model, api_key, provider)
+    API->>Probe: check_llm_connection(base_url, model, api_key, provider)
+    Probe->>Probe: Start stopwatch timer
+    Probe->>LLMServer: HTTP GET /v1/models (with Bearer token if provided)
+    alt Connection Succeeded and Model Found
+        LLMServer-->>Probe: 200 OK with model list data
+        Probe->>Probe: Calculate latency in milliseconds
+        Probe-->>API: Return ok=true with model and latency
+        API-->>UI: 200 OK
+        UI-->>User: Green badge: Connected with measured latency
+    else Connection Timed Out or Server Down
+        LLMServer--xProbe: ConnectTimeout or ConnectionRefused
+        Probe-->>API: Return ok=false with descriptive error
+        API-->>UI: 200 OK with error payload
+        UI-->>User: Red error banner with troubleshooting steps
+    end
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 10 -->
+    <article class="feature-card" id="feature-10">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">10.</span> Interactive Web Dashboard & Real-Time Board</h3>
+          <p>Modern React 18 single-page application with real-time pipeline telemetry, faceted filters, slide-out drawer, job modal, and direct apply fallback.</p>
+        </div>
+        <span class="badge badge-dashboard">Dashboard</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">frontend/src/App.tsx</span>
+        <span class="component-tag">frontend/src/components/JobModal.tsx</span>
+        <span class="component-tag">frontend/src/components/JobDetailPanel.tsx</span>
+        <span class="component-tag">frontend/src/utils.ts</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Real-Time Pipeline Polling:</strong> Streams active run states, elapsed runtimes, and discovery counters with zero UI lag.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Faceted Filtering:</strong> Filter by fit score threshold (slider 0-100%), application status, experience level, portal source, or free-text query.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Direct Role Search Fallback:</strong> If an external portal link has expired (404), the "Search Role" button opens a targeted Google Careers query with the company and title pre-filled.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Dashboard Interactive Workflow</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "User (Browser)"
+    participant UI as "React SPA (Vite / Tailwind)"
+    participant API as "FastAPI Backend"
+    participant DB as "SQLite Database"
+    participant External as "External Portals / Google Careers"
+
+    User->>UI: Opens http://127.0.0.1:8000
+    UI->>API: GET /api/stats, GET /api/filters, GET /api/jobs
+    API->>DB: Query qualified jobs and metrics
+    DB-->>API: Rows serialized as JSON
+    API-->>UI: Initial dataset
+    UI-->>User: Render Kanban cards and metric counters
+
+    loop Every 2.5 seconds when run is active
+        UI->>API: GET /api/runs/current
+        API-->>UI: Return run status and discovery counters
+        UI->>UI: Update progress bar and status indicator
+    end
+
+    User->>UI: Clicks a Job Card
+    UI->>UI: Open JobModal with Overview, AI Match, and Full Description
+    alt User clicks Apply Now
+        UI->>External: Open clean canonical URL in new tab
+    else User clicks Search Role Fallback
+        UI->>External: Open Google Careers query for company and title
+    end
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 11 -->
+    <article class="feature-card" id="feature-11">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">11.</span> Model Context Protocol (MCP) Server Integration</h3>
+          <p>Exposes all agent discovery, deduplication, and persistence tools as standardized MCP capabilities for integration with external AI agent runtimes.</p>
+        </div>
+        <span class="badge badge-protocol">Integration</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/mcp_server/server.py</span>
+        <span class="component-tag">src/mcp_server/tools/storage.py</span>
+        <span class="component-tag">fastmcp.FastMCP</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Registered MCP Tools:</strong> <code>search_jobs</code>, <code>search_linkedin_jobs</code>, <code>check_job_exists</code>, <code>persist_qualified_job</code>, and <code>get_qualified_jobs</code>.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Standardized JSON-RPC:</strong> Operates over stdio or SSE to connect Claude Desktop, Cursor, or Antigravity agents directly to the JobHunterAgent vault.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Safe Tool Boundaries:</strong> Validates inputs using Pydantic models before delegating to the database repository or scrapers.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Model Context Protocol (MCP)</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Agent as "External AI Agent"
+    participant MCP as "FastMCP Server"
+    participant Searcher as "MultiPortalSearcher"
+    participant Storage as "MCP Storage Tools"
+    participant DB as "SQLite Database"
+
+    Agent->>MCP: Call tool search_jobs(company, title, location)
+    MCP->>Searcher: search(company, title, location)
+    Searcher-->>MCP: list of RawJobResult
+    MCP-->>Agent: JSON-formatted list of discovered jobs
+
+    Agent->>Agent: Agent evaluates candidate match locally
+    Agent->>MCP: Call tool check_job_exists(url_hash)
+    MCP->>Storage: check_job_exists(url_hash)
+    Storage->>DB: job_exists(url_hash)
+    DB-->>Storage: boolean exists status
+    Storage-->>MCP: Return exists flag
+    MCP-->>Agent: Job does not exist yet
+
+    Agent->>MCP: Call tool persist_qualified_job(job_data)
+    MCP->>Storage: persist_qualified_job(job_data)
+    Storage->>DB: save_job(EvaluatedJob)
+    DB-->>Storage: Success
+    Storage-->>MCP: Return true
+    MCP-->>Agent: Job persisted successfully in vault
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 12 -->
+    <article class="feature-card" id="feature-12">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">12.</span> Markdown & CSV Reporting & Export Engine</h3>
+          <p>Generates structured, publication-ready GitHub-flavored Markdown discovery summaries and streams real-time CSV dumps for spreadsheet analysis.</p>
+        </div>
+        <span class="badge badge-export">Export</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/export/markdown_exporter.py</span>
+        <span class="component-tag">src/dashboard/api.py (/api/jobs/export.csv)</span>
+        <span class="component-tag">fastapi.responses.StreamingResponse</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Tabulated Markdown Exporter:</strong> Automatically formats jobs into sorted markdown tables with fit score badges, skills, and clickable apply links.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Streaming CSV Download:</strong> In-memory <code>StringIO</code> buffer streams the entire job repository with matched skills, YoE requirements, and evaluation rationale.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Append vs Regenerate:</strong> Supports appending new discovery batches chronologically to <code>jobs_output.md</code> without overwriting historical audit trails.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Export & Reporting Engine</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "User (Dashboard / CLI)"
+    participant CLI as "Agent Runner (CLI)"
+    participant API as "FastAPI (/api/jobs/export.csv)"
+    participant Exporter as "MarkdownExporter"
+    participant DB as "JobRepository"
+    participant File as "File System (jobs_output.md / CSV Stream)"
+
+    alt CLI Pipeline Run
+        CLI->>CLI: Pipeline finishes evaluation
+        CLI->>Exporter: export_jobs(qualified_jobs, summary)
+        Exporter->>Exporter: Sort jobs by fit score descending
+        Exporter->>Exporter: Generate GitHub-style markdown table
+        Exporter->>File: Write content to jobs_output.md
+        Exporter-->>CLI: Export completed with job count
+    else Dashboard CSV Download
+        User->>API: GET /api/jobs/export.csv
+        API->>DB: get_all_jobs()
+        DB-->>API: list of EvaluatedJob
+        API->>API: Instantiate CSV writer with StringIO buffer
+        loop For each job in repository
+            API->>API: Serialize row with score, skills, status
+        end
+        API->>File: StreamingResponse as text/csv
+        File-->>User: Browser downloads jobs_export.csv
+    end
+        </div>
+      </div>
+    </article>
+
+    <!-- FEATURE 13 -->
+    <article class="feature-card" id="feature-13">
+      <div class="feature-header">
+        <div class="feature-title-group">
+          <h3><span class="section-title-num">13.</span> Resume Profile & AI Extraction Engine</h3>
+          <p>Local document ingestion with one-time SLM/LLM profile extraction, categorized skills taxonomy, and dynamic candidate-job matching injection.</p>
+        </div>
+        <span class="badge badge-ai">Inference</span>
+      </div>
+
+      <div class="component-box">
+        <span class="component-label">Modules:</span>
+        <span class="component-tag">src/agent/resume_parser.py</span>
+        <span class="component-tag">src/dashboard/api.py (/api/resume/*)</span>
+        <span class="component-tag">src/database/migrations/006_add_resumes.sql</span>
+        <span class="component-tag">src/models/schemas.py (ParsedResumeProfile)</span>
+        <span class="component-tag">src/agent/pipeline.py (_match_one)</span>
+        <span class="component-tag">frontend/src/pages/ResumePage.tsx</span>
+      </div>
+
+      <ul class="highlights-list">
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Local Git-Ignored Document Vault:</strong> Securely persists candidate resume files (PDF, DOCX, TXT, MD) inside the project's local <code>resumes/</code> folder with UUID isolation. Guaranteed never to be tracked or committed to git via strict <code>.gitignore</code> rules.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>One-Time SLM/LLM Structured Extraction:</strong> Executes a single extraction pass upon upload. The configured local or cloud LLM analyzes raw document text and extracts candidate contact details, executive summary, calculated total YoE, categorized skills (Languages, Frameworks, Databases, Cloud/DevOps, Tools, Core Competencies), detailed work histories with technologies & quantifiable achievements, project portfolios, and inferred target roles.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Permanent Zero-Token Caching:</strong> Parsed candidate profiles are serialized into the SQLite <code>resumes</code> table. Subsequent dashboard visits, card refreshes, and job matches read directly from SQLite without invoking further model tokens.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Dynamic Candidate Matching Injection:</strong> When marked active, <code>Pipeline._match_one()</code> automatically overrides static criteria keywords with the candidate's real-world extracted skills and experience level, enabling personalized, autonomous job qualification scoring.</div></li>
+        <li class="highlight-item"><span class="highlight-bullet">•</span><div><strong>Interactive Management & Re-Analysis:</strong> React-based UI features drag-and-drop file ingestion, multi-resume switching, active profile badges, an on-demand "Re-Analyze with AI" trigger (for testing newly loaded models), and a raw text inspector.</div></li>
+      </ul>
+
+      <div class="diagram-container">
+        <div class="diagram-title">
+          <span>Implementation Sequence: Resume Ingestion, AI Extraction & Pipeline Matching</span>
+          <span class="diagram-badge">Mermaid Sequence Diagram</span>
+        </div>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as "Candidate (Dashboard)"
+    participant UI as "React ResumePage"
+    participant API as "FastAPI (/api/resume/upload)"
+    participant Parser as "agent.resume_parser"
+    participant LocalDisk as "Local Resumes Vault"
+    participant LLM as "Configured SLM / LLM (Local / Cloud)"
+    participant DB as "JobRepository (SQLite WAL)"
+    participant Pipeline as "agent.pipeline.Pipeline"
+
+    Note over User,DB: Stage 1: Document Upload and Local Persistence
+    User->>UI: Selects or drags resume (.pdf, .docx, .txt, .md)
+    UI->>UI: Set uploading state to active with spinner
+    UI->>API: POST /api/resume/upload (multipart/form-data)
+    API->>Parser: process_resume_upload(file_bytes, filename)
+    Parser->>LocalDisk: Write file to resumes/uuid_filename
+    Note over Parser,LocalDisk: Stored in project folder (git-ignored)
+
+    Note over Parser,LLM: Stage 2: One-Time SLM / LLM Profile Extraction
+    Parser->>Parser: extract_text_from_file via pypdf or python-docx
+    Parser->>Parser: Clean whitespace and normalize paragraphs
+    Parser->>LLM: generate(build_resume_extraction_prompt, system_prompt)
+    LLM->>LLM: Analyze skills, work history, projects, metrics, and total YoE
+    LLM-->>Parser: Raw JSON response payload
+    Parser->>Parser: extract_json_from_llm (strips markdown code blocks)
+    Parser->>Parser: Pydantic validation into ParsedResumeProfile
+
+    Note over Parser,DB: Stage 3: Zero-Cost Permanent SQLite Persistence
+    Parser->>DB: save_resume(ResumeRecord)
+    DB->>DB: Set prior resumes is_active = 0
+    DB->>DB: INSERT INTO resumes table
+    DB-->>API: Persisted ResumeRecord
+    API-->>UI: 200 OK (serialized resume record)
+    UI-->>User: Render Candidate Card, Skills Tag Clouds, Timeline, and Projects
+
+    Note over Pipeline,DB: Stage 4: Dynamic Matching Injection During Job Evaluation
+    User->>Pipeline: Trigger Job Match (Batch or Single Job Rematch)
+    Pipeline->>DB: get_active_resume()
+    DB-->>Pipeline: Active ResumeRecord with ParsedResumeProfile
+    Pipeline->>Pipeline: Inject candidate extracted skills into target_skills
+    Pipeline->>Pipeline: Inject candidate total_yoe into target_yoe
+    Pipeline->>LLM: Evaluate job snippet against Candidate REAL Profile
+    LLM-->>Pipeline: High-accuracy personalized fit score (0-100) and pros/cons
+    Pipeline->>DB: save evaluated job
+        </div>
+      </div>
+    </article>
+
+    <!-- Footer -->
+    <footer>
+      <div>JobHunterAgent Documentation &bull; Generated for <code>docs/features.html</code></div>
+      <div>Designed for Google Deepmind Antigravity Pair-Programming</div>
+    </footer>
+
+  </main>
+
+  <script>
+    // Initialize Mermaid.js
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      securityLevel: 'loose',
+      themeVariables: {
+        darkMode: true,
+        background: '#0b1120',
+        primaryColor: '#6366f1',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#4f46e5',
+        lineColor: '#38bdf8',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a',
+        actorBorder: '#6366f1',
+        actorBkg: '#1e293b',
+        actorTextColor: '#f8fafc',
+        signalColor: '#38bdf8',
+        signalTextColor: '#f8fafc',
+        labelBoxBkgColor: '#1e293b',
+        labelBoxBorderColor: '#334155',
+        labelTextColor: '#f8fafc',
+        loopTextColor: '#f8fafc',
+        noteBorderColor: '#334155',
+        noteBkgColor: '#1e293b',
+        noteTextColor: '#f8fafc',
+        activationBorderColor: '#6366f1',
+        activationBkgColor: '#312e81'
+      },
+      sequence: {
+        useMaxWidth: false,
+        showSequenceNumbers: true,
+        boxMargin: 12,
+        noteMargin: 12,
+        messageMargin: 40
+      }
+    });
+
+    // Real-time search filter for features
+    function filterFeatures() {
+      const query = document.getElementById('featureSearch').value.toLowerCase();
+      const cards = document.querySelectorAll('.feature-card');
+      const tableRows = document.querySelectorAll('#inventoryTable tbody tr');
+
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        if (text.includes(query)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      tableRows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        if (text.includes(query)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Smooth scroll and active state on sidebar clicks
+    document.querySelectorAll('.sidebar a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const targetId = this.getAttribute('href').slice(1);
+        const targetElem = document.getElementById(targetId);
+        if (targetElem) {
+          e.preventDefault();
+          targetElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.pushState(null, null, `#${targetId}`);
+          
+          document.querySelectorAll('.nav-item a').forEach(a => a.classList.remove('active'));
+          this.classList.add('active');
+        }
+      });
+    });
+
+    // Active link highlighting on scroll using getBoundingClientRect
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('.hero, #inventory, .feature-card');
+      const navLinks = document.querySelectorAll('.nav-item a');
+
+      let current = '';
+      sections.forEach(section => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= 180) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      if (current) {
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === `#${current}`) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

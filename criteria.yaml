@@ -13,6 +13,12 @@ global:
   - AWS
   - Docker
 targets:
+- company: Google
+  title: Software Engineer
+  location: Bengaluru
+- company: Microsoft
+  title: Software Engineer
+  location: Bengaluru
 - company: Amazon
   title: Software Engineer
   location: Bengaluru

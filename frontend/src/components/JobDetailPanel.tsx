@@ -1,13 +1,19 @@
-import { ExternalLink, Target, Briefcase, FileText, CheckCircle2, XCircle, Building2, MapPin } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Target, Briefcase, FileText, CheckCircle2, XCircle, Building2, MapPin, Sparkles, RefreshCw, Maximize2, Loader2, Search } from "lucide-react";
 import type { Job, JobStatus } from "../types";
+import { getCleanApplyUrl, getDirectSearchUrl } from "../utils";
 
 interface Props {
   job: Job | null;
   statuses: JobStatus[];
   onStatusChange: (s: JobStatus) => void;
+  onOpenModal: (job: Job) => void;
+  onEvaluateJob: (id: string) => Promise<Job | null>;
 }
 
-export function JobDetailPanel({ job, statuses, onStatusChange }: Props) {
+export function JobDetailPanel({ job, statuses, onStatusChange, onOpenModal, onEvaluateJob }: Props) {
+  const [evaluating, setEvaluating] = useState(false);
+
   if (!job) {
     return (
       <aside className="detail-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
@@ -20,18 +26,87 @@ export function JobDetailPanel({ job, statuses, onStatusChange }: Props) {
     );
   }
 
+  const handleEvaluate = async () => {
+    setEvaluating(true);
+    try {
+      await onEvaluateJob(job.id);
+    } finally {
+      setEvaluating(false);
+    }
+  };
+
   return (
     <aside className="detail-panel">
       <div className="dp-scroll">
         <div className="dp-header">
-          <h2 className="dp-title">{job.title}</h2>
-          <div className="dp-company" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+            <h2 className="dp-title" style={{ margin: 0, flex: 1 }}>{job.title}</h2>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => onOpenModal(job)}
+              title="Open in Full Modal"
+              style={{ padding: 4, borderRadius: 4, color: 'var(--text-muted)' }}
+            >
+              <Maximize2 size={16} />
+            </button>
+          </div>
+
+          <div className="dp-company" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             <Building2 size={16}/> {job.company} • <MapPin size={16}/> {job.location}
           </div>
           
-          <a href={job.apply_url} target="_blank" rel="noreferrer" className="dp-apply-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            Apply on {job.source_portal} <ExternalLink size={16} />
-          </a>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleEvaluate}
+              disabled={evaluating}
+              style={{
+                flex: 1,
+                fontSize: 12,
+                padding: '8px 12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                background: job.evaluated ? 'var(--primary)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              }}
+            >
+              {evaluating ? <Loader2 size={14} className="spin" /> : job.evaluated ? <RefreshCw size={14} /> : <Sparkles size={14} />}
+              {evaluating ? "Evaluating..." : job.evaluated ? "Rematch with AI" : "Match with AI"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => onOpenModal(job)}
+              style={{ fontSize: 12, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <Maximize2 size={14} /> Modal
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <a 
+              href={getCleanApplyUrl(job.apply_url)} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="dp-apply-btn" 
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0 }}
+            >
+              Apply on {job.source_portal} <ExternalLink size={15} />
+            </a>
+            <a
+              href={getDirectSearchUrl(job.company, job.title, job.location)}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary"
+              style={{ padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, textDecoration: 'none' }}
+              title="Search company careers on Google if direct board link expired"
+            >
+              <Search size={14} /> Search Role
+            </a>
+          </div>
           <select 
             className="status-select" 
             value={job.status} 
@@ -82,8 +157,8 @@ export function JobDetailPanel({ job, statuses, onStatusChange }: Props) {
         </div>
 
         <div className="dp-section">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Briefcase size={16}/> Original Snippet</h3>
-          <div className="dp-snippet">{job.raw_snippet}</div>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Briefcase size={16}/> Job Description</h3>
+          <div className="dp-snippet" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '13px' }}>{job.raw_snippet || "No description available."}</div>
         </div>
       </div>
     </aside>

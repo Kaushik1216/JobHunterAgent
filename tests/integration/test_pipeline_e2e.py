@@ -1,18 +1,19 @@
-import pytest
-from unittest.mock import MagicMock
-from job_agent.core.pipeline import Pipeline
-from job_agent.models.schemas import SearchTarget, RawJobResult, EvaluatedJob
-from job_agent.models.enums import JobStatus
-from job_agent.observability.metrics import MetricsCollector
+from unittest.mock import MagicMock, patch
+from agent.pipeline import Pipeline
+from models.schemas import SearchTarget, RawJobResult, EvaluatedJob
+from models.enums import JobStatus
+from observability.metrics import MetricsCollector
 
-def test_pipeline_e2e(db_manager, repository, settings, tmp_path, sample_evaluated_job):
+@patch("agent.pipeline.fetch_job_description", return_value=("Full description for Test Engineer with Python and Docker", False))
+@patch("agent.pipeline.enrich_jobs_concurrently", side_effect=lambda jobs: jobs)
+def test_pipeline_e2e(mock_enrich, mock_fetch, db_manager, repository, settings, tmp_path, sample_evaluated_job):
     # Setup mocks
     mock_searcher = MagicMock()
     mock_ollama_client = MagicMock()
     mock_output_guard = MagicMock()
     
     # Configure exporter
-    from job_agent.export.markdown_exporter import MarkdownExporter
+    from export.markdown_exporter import MarkdownExporter
     exporter = MarkdownExporter(tmp_path / "jobs.md")
     
     # Configure metrics

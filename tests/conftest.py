@@ -1,9 +1,9 @@
 import pytest
 from pathlib import Path
-from job_agent.config import Settings
-from job_agent.storage.database import DatabaseManager
-from job_agent.storage.repository import JobRepository
-from job_agent.models.schemas import EvaluatedJob, SearchTarget
+from config import Settings
+from database.database import DatabaseManager
+from database.repository import JobRepository
+from models.schemas import EvaluatedJob, SearchTarget
 
 @pytest.fixture
 def tmp_db_path(tmp_path: Path) -> Path:

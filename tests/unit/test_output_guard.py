@@ -1,9 +1,9 @@
 import pytest
 import json
 from unittest.mock import MagicMock
-from job_agent.inference.output_guard import OutputGuard
-from job_agent.exceptions import OutputValidationError
-from job_agent.models.schemas import EvaluatedJob
+from inference.output_guard import OutputGuard
+from exceptions import OutputValidationError
+from models.schemas import EvaluatedJob
 
 @pytest.fixture
 def mock_client():

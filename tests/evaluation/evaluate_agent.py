@@ -1,10 +1,10 @@
 import json
 import structlog
 from pathlib import Path
-from job_agent.config import get_settings
-from job_agent.inference.client import LLMClient
-from job_agent.inference.output_guard import OutputGuard
-from job_agent.inference.prompts import build_extraction_prompt, EXTRACTION_SYSTEM_PROMPT, get_extraction_schema
+from config import get_settings
+from inference.client import LLMClient
+from inference.output_guard import OutputGuard
+from inference.prompts import build_extraction_prompt, EXTRACTION_SYSTEM_PROMPT, get_extraction_schema
 
 logger = structlog.get_logger()
 

@@ -2,13 +2,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from job_agent.exceptions import CircuitBreakerOpenError, ConfigurationError, SearchError
-from job_agent.mcp_server.tools.search import LinkedInSearcher
-from job_agent.models.schemas import RawJobResult
-from job_agent.portals.ats import GreenhousePortal, LeverPortal
-from job_agent.portals.boards import IndeedPortal, LinkedInPortal, NaukriPortal
-from job_agent.portals.composite import MultiPortalSearcher
-from job_agent.portals.registry import create_portals, list_portal_ids
+from exceptions import CircuitBreakerOpenError, ConfigurationError, SearchError
+from mcp_server.tools.search import LinkedInSearcher
+from models.schemas import RawJobResult
+from portals.ats import GreenhousePortal, LeverPortal
+from portals.boards import IndeedPortal, LinkedInPortal, NaukriPortal
+from portals.composite import MultiPortalSearcher
+from portals.registry import create_portals, list_portal_ids
 
 
 def test_linkedin_build_query(settings):
@@ -39,12 +39,12 @@ def test_accepts_url(settings):
     assert indeed.accepts_url("https://in.indeed.com/viewjob?jk=1")
 
 
-@patch("job_agent.portals.base.DDGS")
+@patch("portals.base.DDGS")
 def test_search_success(mock_ddgs_class, settings):
     mock_instance = mock_ddgs_class.return_value
     mock_instance.text.return_value = [
-        {"title": "Job 1", "href": "https://www.linkedin.com/jobs/view/1", "body": "Snippet 1"},
-        {"title": "Job 1 dup", "href": "https://www.linkedin.com/jobs/view/1", "body": "Snippet 1 dup"},
+        {"title": "Stripe Engineer", "href": "https://www.linkedin.com/jobs/view/1", "body": "Snippet 1 at Stripe"},
+        {"title": "Stripe Engineer dup", "href": "https://www.linkedin.com/jobs/view/1", "body": "Snippet 1 dup at Stripe"},
         {"title": "Off site", "href": "https://example.com/job1", "body": "Ignored"},
     ]
 
@@ -53,11 +53,11 @@ def test_search_success(mock_ddgs_class, settings):
 
     assert len(results) == 1
     assert str(results[0].url) == "https://www.linkedin.com/jobs/view/1"
-    assert results[0].title == "Job 1"
+    assert results[0].title == "Stripe Engineer"
     assert results[0].source_portal == "linkedin"
 
 
-@patch("job_agent.portals.base.DDGS")
+@patch("portals.base.DDGS")
 def test_circuit_breaker(mock_ddgs_class, settings):
     mock_instance = mock_ddgs_class.return_value
     mock_instance.text.side_effect = Exception("General Error")

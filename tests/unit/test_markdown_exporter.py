@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
-from job_agent.export.markdown_exporter import MarkdownExporter
-from job_agent.models.schemas import ExecutionSummary
+from export.markdown_exporter import MarkdownExporter
+from models.schemas import ExecutionSummary
 
 def test_export_jobs(tmp_path, sample_evaluated_job):
     out_file = tmp_path / "jobs.md"

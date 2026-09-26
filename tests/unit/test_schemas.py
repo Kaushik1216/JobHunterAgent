@@ -1,11 +1,11 @@
 import pytest
 from datetime import datetime
 from pydantic import ValidationError
-from job_agent.models.schemas import (
+from models.schemas import (
     GlobalFilters, SearchTarget, CriteriaConfig,
     RawJobResult, EvaluatedJob, ExecutionSummary
 )
-from job_agent.models.enums import JobStatus
+from models.enums import JobStatus
 
 def test_global_filters_valid():
     gf = GlobalFilters(target_yoe=5, preferred_locations=["NY"], core_skills=["Python"])

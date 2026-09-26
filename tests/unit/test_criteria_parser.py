@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
-from job_agent.core.criteria_parser import parse_criteria
-from job_agent.exceptions import CriteriaParseError
+from agent.criteria_parser import parse_criteria
+from exceptions import CriteriaParseError
 
 def test_parse_valid_criteria(sample_criteria_yaml):
     config = parse_criteria(sample_criteria_yaml)

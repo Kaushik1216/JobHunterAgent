@@ -79,17 +79,26 @@ temp/
 jobs_vault.db
 jobs_output.md
 job_description.txt
-scratch_test_model.py
-run_test.py
-plan.md
+duckduckgo_jobs/
+test_diagrams_dump/
 
-# Documentation drafts (keep README in repo)
-docs/
+# Prevent stray databases inside src/
+src/**/*.db
+src/**/*.db-wal
+src/**/*.db-shm
 
-# Frontend build output in backend
-src/job_agent/dashboard/web/
+# Documentation
+!docs/
+!docs/**
 
-# Scratch and patch scripts
-patch_*.py
-test_*.py
+# Resumes store (local candidate files)
+resumes/
+data/resumes/
+*.pdf
+*.docx
+
+# Scratch and patch scripts (root level only)
+/patch_*.py
+/test_*.py
+
 

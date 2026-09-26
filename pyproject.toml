@@ -3,7 +3,21 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/job_agent"]
+packages = [
+    "src/agent",
+    "src/dashboard",
+    "src/database",
+    "src/export",
+    "src/inference",
+    "src/mcp_server",
+    "src/models",
+    "src/observability",
+    "src/portals",
+    "src/cli.py",
+    "src/config.py",
+    "src/constants.py",
+    "src/exceptions.py",
+]
 
 [project]
 name = "linkedin-job-agent"
@@ -22,7 +36,9 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "tabulate>=0.9.0",
-    "pyyaml>=6.0.0"
+    "pyyaml>=6.0.0",
+    "pypdf>=6.19.0",
+    "python-docx>=1.2.0",
 ]
 
 [project.optional-dependencies]
@@ -36,7 +52,7 @@ dev = [
 ]
 
 [project.scripts]
-job-agent = "job_agent.cli:app"
+job-agent = "cli:app"
 
 [tool.ruff]
 line-length = 100
@@ -48,7 +64,10 @@ select = ["E", "W", "F", "I", "N", "UP", "YTT", "ANN", "S", "B", "A", "COM", "C4
 [tool.mypy]
 strict = true
 python_version = "3.11"
+mypy_path = "src"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 asyncio_mode = "auto"
+
