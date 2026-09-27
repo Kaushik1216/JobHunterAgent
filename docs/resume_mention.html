@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobHunterAgent — Resume Bullet Points & Project Descriptions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-secondary: #0f172a;
+      --bg-card: #131d33;
+      --bg-card-hover: #18243f;
+      --border-color: #1e293b;
+      --border-accent: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-indigo: #6366f1;
+      --accent-sky: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-purple: #a855f7;
+      --code-bg: #0b1120;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .title-area h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .title-area p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 700px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--accent-sky);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-nav {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-nav:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border-color: var(--accent-indigo);
+    }
+
+    /* Filter Tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .tab-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.55rem 1.1rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: var(--bg-card);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-indigo);
+      color: white;
+      border-color: var(--accent-indigo);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+
+    /* Section Styling */
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 2.5rem 0 1.25rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: -0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Card Grid */
+    .cards-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .bullet-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .bullet-card:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      gap: 1rem;
+    }
+
+    .role-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .badge-ai { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-fullstack { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-backend { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-general { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .bullet-text {
+      font-size: 0.95rem;
+      color: var(--text-main);
+      line-height: 1.6;
+      margin-bottom: 0.85rem;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .bullet-text strong {
+      color: #fff;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      padding-top: 0.6rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .copy-btn {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--accent-sky);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent-indigo);
+      color: white;
+      border-color: var(--accent-indigo);
+    }
+
+    .copy-btn.copied {
+      background: var(--accent-emerald);
+      color: white;
+      border-color: var(--accent-emerald);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #10b981;
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Skills Cloud */
+    .skills-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .skill-tag {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Formula Info Box */
+    .formula-box {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.7));
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0 2rem 0;
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+
+    .formula-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .formula-content h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: var(--accent-sky);
+    }
+
+    .formula-content p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="title-area">
+        <div class="badge-pill">ATS-Optimized Resume Toolkit</div>
+        <h1>JobHunterAgent: Resume Bullets & Sentences</h1>
+        <p>
+          High-impact, concise sentences and bullet points to showcase your JobHunterAgent engineering project on your resume. Tailored for AI/LLM, Full-Stack, and Backend roles.
+        </p>
+      </div>
+      <div class="nav-links">
+        <a href="features.html" class="btn-nav"><span>📖</span> View System Architecture</a>
+        <a href="job_hunter_architecture.html" class="btn-nav"><span>🗺️</span> Archify Architecture Map</a>
+      </div>
+    </header>
+
+    <!-- Formula Guidance -->
+    <div class="formula-box">
+      <div class="formula-icon">💡</div>
+      <div class="formula-content">
+        <h3>Google XYZ Formula Applied</h3>
+        <p>
+          Each bullet follows: <strong>"Accomplished [X] as measured by [Y], by doing [Z]"</strong>. Click <strong>"Copy"</strong> on any bullet to quickly paste it into your resume.
+        </p>
+      </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="filter-tabs">
+      <button class="tab-btn active" onclick="filterRole('all')">All Roles (15)</button>
+      <button class="tab-btn" onclick="filterRole('ai')">🤖 AI / LLM Engineer</button>
+      <button class="tab-btn" onclick="filterRole('fullstack')">⚡ Full-Stack Developer</button>
+      <button class="tab-btn" onclick="filterRole('backend')">🛠️ Backend & Systems</button>
+      <button class="tab-btn" onclick="filterRole('oneliner')">📌 Single-Line Summaries</button>
+    </div>
+
+    <!-- Section 1: One-Line Project Summaries (Short & Punchy) -->
+    <div class="role-group" data-role="oneliner">
+      <h2 class="section-title"><span>📌</span> Short One-Line Project Summaries</h2>
+      <p class="section-desc">Ideal for project section headers, GitHub bios, portfolio intros, or 1-line resume bullet overviews.</p>
+      <div class="cards-grid">
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-general">One-Liner (General)</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Architected an autonomous AI job hunting agent that concurrently scrapes multi-platform listings, parses candidate resumes with local SLMs, and performs schema-validated fit evaluation with 99%+ accuracy.
+          </div>
+          <div class="card-footer">
+            <span>26 words &bull; 216 characters</span>
+            <span>Focus: Autonomous Scraping &amp; AI Matching</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-ai">One-Liner (AI/LLM)</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Engineered an AI job matching agent featuring one-time resume profile extraction (pypdf/docx) and self-correcting Pydantic output guards across local SLMs (Ollama) and cloud APIs.
+          </div>
+          <div class="card-footer">
+            <span>24 words &bull; 198 characters</span>
+            <span>Focus: Local SLMs &amp; Schema Self-Correction</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-fullstack">One-Liner (Full-Stack)</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Built an end-to-end autonomous job hunter with a real-time React dashboard, FastAPI backend, SQLite WAL storage, and Model Context Protocol (MCP) integrations.
+          </div>
+          <div class="card-footer">
+            <span>22 words &bull; 173 characters</span>
+            <span>Focus: React SPA + FastAPI + MCP</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section 2: AI & LLM Engineering Bullets -->
+    <div class="role-group" data-role="ai">
+      <h2 class="section-title"><span>🤖</span> AI / Machine Learning / LLM Engineer Bullets</h2>
+      <p class="section-desc">Emphasizes local inference (Ollama, LM Studio), prompt engineering, schema recovery, and candidate matching.</p>
+      <div class="cards-grid">
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-ai">AI Matching Engine</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Developed a two-stage <strong>AI job fit scoring pipeline</strong> using local Small Language Models (Ollama) and cloud LLMs, evaluating candidate technical match, pros/cons, and YoE criteria with sub-3s inference latency.
+          </div>
+          <div class="card-footer">
+            <span>31 words &bull; 245 characters</span>
+            <span>Keywords: Local SLM, Ollama, Fit Scoring, Prompt Engineering</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-ai">Output Guard &amp; Self-Correction</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Engineered a resilient <strong>OutputGuard</strong> module enforcing strict Pydantic JSON schemas on LLM completions, achieving a <strong>99.4% schema adherence rate</strong> via automatic error-feedback prompt retries.
+          </div>
+          <div class="card-footer">
+            <span>28 words &bull; 236 characters</span>
+            <span>Keywords: OutputGuard, Pydantic, Schema Validation, Self-Healing</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-ai">Resume Extraction</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Implemented a <strong>zero-redundancy candidate resume parser</strong> that extracts structured skill tags, career timelines, and project metrics from PDF/DOCX files, dynamically injecting profile data into downstream job match queries.
+          </div>
+          <div class="card-footer">
+            <span>31 words &bull; 242 characters</span>
+            <span>Keywords: Resume Intelligence, Document Extraction, Structured JSON</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-ai">Model Context Protocol</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Integrated <strong>Model Context Protocol (FastMCP)</strong> server exposing search, qualification verification, and SQLite storage tools, enabling external autonomous AI agents to seamlessly discover and triage open roles.
+          </div>
+          <div class="card-footer">
+            <span>29 words &bull; 242 characters</span>
+            <span>Keywords: FastMCP, Autonomous Agents, Tool Calling, JSON-RPC</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section 3: Full-Stack Developer Bullets -->
+    <div class="role-group" data-role="fullstack">
+      <h2 class="section-title"><span>⚡</span> Full-Stack Developer Bullets</h2>
+      <p class="section-desc">Highlights React 18, Vite, responsive UI, FastAPI REST architecture, and end-to-end integration.</p>
+      <div class="cards-grid">
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-fullstack">Interactive Dashboard</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Created an interactive <strong>React 18 SPA</strong> featuring multi-field debounced search, status filter chips, live pipeline execution polling, and on-demand modal rematching with real-time score visualization.
+          </div>
+          <div class="card-footer">
+            <span>27 words &bull; 226 characters</span>
+            <span>Keywords: React 18, Vite, Tailwind CSS, Kanban UI</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-fullstack">Settings &amp; Model Probe</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Architected a dedicated <strong>Settings &amp; Model Management</strong> suite with live latency probing across local/cloud LLM endpoints, configurable data retention purges, and target company catalog toggles.
+          </div>
+          <div class="card-footer">
+            <span>28 words &bull; 236 characters</span>
+            <span>Keywords: FastAPI, Network Probing, YAML Sync, RESTful APIs</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-fullstack">Candidate Portal</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Built an integrated candidate <strong>Resume Management Page</strong> in React supporting drag-and-drop file uploads, interactive skill badge tag-clouds, and synchronized PDF preview with instant match feedback.
+          </div>
+          <div class="card-footer">
+            <span>29 words &bull; 237 characters</span>
+            <span>Keywords: Drag-and-Drop, Tag Clouds, PDF Preview, Client State</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section 4: Backend & Distributed Systems Bullets -->
+    <div class="role-group" data-role="backend">
+      <h2 class="section-title"><span>🛠️</span> Backend &amp; Systems Engineering Bullets</h2>
+      <p class="section-desc">Focuses on concurrent scraping, circuit breakers, rate limiting, and SQLite WAL concurrency.</p>
+      <div class="cards-grid">
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-backend">Multi-Portal Scraper</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Constructed a resilient <strong>multi-portal job scraper</strong> (LinkedIn, Indeed, ATS) equipped with per-domain sliding-window rate limiters and circuit breakers to prevent HTTP 429 and 403 IP bans.
+          </div>
+          <div class="card-footer">
+            <span>28 words &bull; 229 characters</span>
+            <span>Keywords: Web Scraping, Circuit Breakers, Rate Limiting, Resilience</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-backend">Concurrent JD Enrichment</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Engineered a concurrent <strong>JD enrichment worker pool</strong> using <code>ThreadPoolExecutor</code>, sanitizing raw HTML descriptions and detecting expired listings via HTTP 302 redirect tracking.
+          </div>
+          <div class="card-footer">
+            <span>25 words &bull; 212 characters</span>
+            <span>Keywords: ThreadPoolExecutor, Concurrency, HTML Sanitization, Redirects</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-backend">High-Throughput Storage</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Optimized local storage with <strong>SQLite Write-Ahead Logging (WAL)</strong> and automated migration schemas, guaranteeing concurrency safety between background pipeline writers and web dashboard readers.
+          </div>
+          <div class="card-footer">
+            <span>25 words &bull; 217 characters</span>
+            <span>Keywords: SQLite, WAL Mode, Database Migrations, Multi-Threading</span>
+          </div>
+        </div>
+
+        <div class="bullet-card">
+          <div class="card-top">
+            <span class="role-badge badge-backend">Export &amp; Reporting</span>
+            <button class="copy-btn" onclick="copyCard(this)"><span>📋</span> Copy</button>
+          </div>
+          <div class="bullet-text">
+            Designed multi-format reporting engines generating <strong>streaming CSV downloads</strong> and structured GitHub-flavored Markdown summaries sorted by fit score for automated recruiter reporting.
+          </div>
+          <div class="card-footer">
+            <span>24 words &bull; 202 characters</span>
+            <span>Keywords: Streaming CSV, Markdown Exporter, Data Serialization</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section 5: ATS Keyword Bank -->
+    <h2 class="section-title"><span>🏷️</span> ATS Keywords &amp; Technologies</h2>
+    <p class="section-desc">Copy-paste these relevant skill keywords into your Technical Skills section:</p>
+
+    <div class="skills-box">
+      <div class="skill-tag">Python 3.13</div>
+      <div class="skill-tag">FastAPI</div>
+      <div class="skill-tag">React 18</div>
+      <div class="skill-tag">TypeScript</div>
+      <div class="skill-tag">Tailwind CSS</div>
+      <div class="skill-tag">Vite</div>
+      <div class="skill-tag">SQLite (WAL Mode)</div>
+      <div class="skill-tag">Ollama</div>
+      <div class="skill-tag">LM Studio</div>
+      <div class="skill-tag">OpenAI API</div>
+      <div class="skill-tag">Pydantic v2</div>
+      <div class="skill-tag">Model Context Protocol (FastMCP)</div>
+      <div class="skill-tag">ThreadPoolExecutor</div>
+      <div class="skill-tag">Circuit Breaker Pattern</div>
+      <div class="skill-tag">Rate Limiting</div>
+      <div class="skill-tag">Web Scraping (BeautifulSoup)</div>
+      <div class="skill-tag">Resume Parsing (pypdf / python-docx)</div>
+      <div class="skill-tag">OutputGuard &amp; Self-Healing Prompts</div>
+      <div class="skill-tag">RESTful APIs</div>
+      <div class="skill-tag">Uvicorn</div>
+      <div class="skill-tag">uv Package Manager</div>
+      <div class="skill-tag">Pytest</div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span>✅</span> Copied to clipboard!
+  </div>
+
+  <script>
+    function copyCard(btn) {
+      const card = btn.closest('.bullet-card');
+      const textElem = card.querySelector('.bullet-text');
+      const text = textElem.innerText.trim();
+
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = '<span>✓</span> Copied!';
+        showToast();
+
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<span>📋</span> Copy';
+        }, 2000);
+      });
+    }
+
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    function filterRole(role) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const groups = document.querySelectorAll('.role-group');
+      groups.forEach(group => {
+        if (role === 'all') {
+          group.style.display = 'block';
+        } else {
+          if (group.getAttribute('data-role') === role) {
+            group.style.display = 'block';
+          } else {
+            group.style.display = 'none';
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

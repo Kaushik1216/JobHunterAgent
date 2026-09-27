@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "JobHunterAgent Architecture",
+    "output": "docs/job_hunter_architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1160, 580],
+    "views": [
+      {
+        "id": "search-flow",
+        "label": "Job Discovery & Search",
+        "focus": ["user", "dashboard", "api", "pipeline", "portals", "db"],
+        "note": "Follow user requests through the pipeline to multi-portal scraping and database storage."
+      },
+      {
+        "id": "resume-flow",
+        "label": "Resume AI Extraction",
+        "focus": ["dashboard", "api", "resume_parser", "llm"],
+        "note": "Trace resume document upload and one-time SLM structured profile extraction."
+      },
+      {
+        "id": "guard-eval",
+        "label": "AI Matching & Schema Guard",
+        "focus": ["pipeline", "guard", "llm", "db"],
+        "note": "Evaluate job candidate fit with OutputGuard schema self-correction loops."
+      },
+      {
+        "id": "mcp-protocol",
+        "label": "MCP External Protocol",
+        "focus": ["mcp_server", "db"],
+        "note": "External agents query tools and repository via Model Context Protocol."
+      }
+    ]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "Candidate / User", "sublabel": "Browser / CLI", "pos": [60, 280], "size": [130, 60] },
+    { "id": "dashboard", "type": "frontend", "label": "React Dashboard", "sublabel": "SPA :8000", "pos": [270, 280], "size": [140, 60], "brand": "react" },
+    { "id": "api", "type": "backend", "label": "FastAPI Gateway", "sublabel": "REST API + RunManager", "pos": [490, 280], "size": [140, 60], "brand": "fastapi" },
+    { "id": "pipeline", "type": "backend", "label": "Agent Pipeline", "sublabel": "Search & Match Runner", "pos": [710, 280], "size": [140, 60], "brand": "python" },
+    { "id": "portals", "type": "cloud", "label": "Job Portals", "sublabel": "LinkedIn / Indeed / ATS", "pos": [940, 280], "size": [140, 60] },
+    { "id": "resume_parser", "type": "backend", "label": "Resume AI Parser", "sublabel": "PDF / DOCX Extractor", "pos": [490, 120], "size": [140, 60] },
+    { "id": "llm", "type": "cloud", "label": "LLM / SLM Provider", "sublabel": "Ollama / Local / OpenAI", "pos": [710, 120], "size": [140, 60], "brand": "openai" },
+    { "id": "guard", "type": "security", "label": "OutputGuard", "sublabel": "Schema Self-Correction", "pos": [940, 120], "size": [140, 60] },
+    { "id": "mcp_server", "type": "messagebus", "label": "FastMCP Server", "sublabel": "Model Context Protocol", "pos": [270, 440], "size": [140, 60] },
+    { "id": "db", "type": "database", "label": "SQLite WAL DB", "sublabel": "jobs_vault.db", "pos": [490, 440], "size": [140, 60], "brand": "sqlite" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "JobHunterAgent Application", "wraps": ["dashboard", "api", "pipeline", "resume_parser", "guard", "mcp_server", "db"] }
+  ],
+  "connections": [
+    { "id": "user-to-ui", "from": "user", "to": "dashboard", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "ui-to-api", "from": "dashboard", "to": "api", "label": "REST API" },
+    { "id": "api-to-parser", "from": "api", "to": "resume_parser", "label": "upload resume", "fromSide": "top", "toSide": "bottom", "labelAt": [560, 200] },
+    { "id": "parser-to-llm", "from": "resume_parser", "to": "llm", "label": "extract profile" },
+    { "id": "api-to-pipeline", "from": "api", "to": "pipeline", "label": "start run" },
+    { "id": "pipeline-to-portals", "from": "pipeline", "to": "portals", "label": "scrape jobs" },
+    { "id": "pipeline-to-guard", "from": "pipeline", "to": "guard", "label": "match criteria", "fromSide": "top", "toSide": "bottom", "labelAt": [900, 200] },
+    { "id": "guard-to-llm", "from": "guard", "to": "llm", "label": "structured JSON", "variant": "security" },
+    { "id": "pipeline-to-db", "from": "pipeline", "to": "db", "label": "save jobs", "fromSide": "bottom", "toSide": "right", "labelAt": [717, 360] },
+    { "id": "api-to-db", "from": "api", "to": "db", "label": "query records", "fromSide": "bottom", "toSide": "top", "labelAt": [560, 390] },
+    { "id": "mcp-to-db", "from": "mcp_server", "to": "db", "label": "tools query" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Discovery & Scraping Engine",
+      "items": [
+        "Multi-portal scraper querying LinkedIn, Indeed, and ATS platforms",
+        "Resilient circuit breakers and rate limiters prevent HTTP 429/403 throttling",
+        "Concurrent JD enrichment cleans HTML and checks 302 redirects for expired postings"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Candidate Intelligence & Matching",
+      "items": [
+        "One-time resume AI extraction parses skills, work experience, projects, and total YoE",
+        "Extracted candidate profile dynamically injected into target criteria for high precision",
+        "OutputGuard validates strict Pydantic schemas with automated correction loops"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Concurrency-Safe Storage & Protocols",
+      "items": [
+        "SQLite with Write-Ahead Logging (WAL) and busy timeout ensures multi-thread safety",
+        "Real-time React dashboard with full-text search, status chips, and model test probes",
+        "FastMCP server exposes discovery and evaluation capabilities to external AI agents"
+      ]
+    }
+  ]
+}
